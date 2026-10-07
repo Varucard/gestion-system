@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Manual de Usuario — Servicio Técnico PC</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm 20mm; }
+  :root { --azul: #12355b; --naranja: #e8a317; --texto: #222; --suave: #5b6470; --borde: #d9dee5; }
+  * { box-sizing: border-box; }
+  body { font-family: "DejaVu Sans", "Noto Color Emoji", sans-serif; color: var(--texto); font-size: 10.5pt; line-height: 1.5; margin: 0; }
+  h1 { color: var(--azul); font-size: 19pt; border-bottom: 3px solid var(--naranja); padding-bottom: 4px; margin: 0 0 12px; break-before: page; }
+  h2 { color: var(--azul); font-size: 13pt; margin: 18px 0 6px; break-after: avoid; }
+  p { margin: 0 0 8px; }
+  a { color: var(--azul); }
+  ul { margin: 0 0 10px; padding-left: 20px; }
+  li { margin-bottom: 2px; }
+
+  .portada { height: 255mm; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+  .portada .marca { color: var(--naranja); font-weight: bold; letter-spacing: 4px; font-size: 13pt; }
+  .portada .titulo { color: var(--azul); font-size: 34pt; font-weight: bold; margin: 6px 0; }
+  .portada .sub { color: var(--suave); font-size: 15pt; }
+  .portada .raya { width: 70px; height: 4px; background: var(--naranja); border-radius: 2px; margin: 22px 0 18px; }
+  .portada .chico { color: var(--suave); font-size: 10.5pt; margin: 4px 0; }
+  .portada img { width: 110px; margin-bottom: 18px; border-radius: 50%; }
+
+  .indice { columns: 2; column-gap: 30px; padding: 0; list-style: none; margin: 0 0 18px; }
+  .indice li { margin-bottom: 6px; }
+
+  .menu { display: inline-block; background: #eef2f7; border: 1px solid #c9d3df; border-radius: 4px; padding: 0 5px; font-weight: bold; font-size: 9.5pt; white-space: nowrap; }
+  .btn { display: inline-block; background: #fff6dc; border: 1px solid #e8a317; border-radius: 4px; padding: 0 5px; font-weight: bold; font-size: 9.5pt; white-space: nowrap; }
+
+  .nota { border-left: 4px solid; border-radius: 4px; padding: 8px 12px; margin: 10px 0 12px; break-inside: avoid; }
+  .nota strong:first-child { display: block; }
+  .consejo { background: #e8f4ee; border-color: #2e8b57; }
+  .atencion { background: #fdf0e6; border-color: #d9731a; }
+  .admin { background: #ecf0fb; border-color: #4a5fc1; }
+
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 12px; font-size: 9.5pt; break-inside: auto; }
+  th { background: var(--azul); color: #fff; text-align: left; padding: 6px 8px; }
+  td { border: 1px solid var(--borde); padding: 6px 8px; vertical-align: top; }
+  tr { break-inside: avoid; }
+  thead { display: table-header-group; break-after: avoid; }
+  ol.pasos ul { margin-top: 4px; }
+  tr:nth-child(even) td { background: #f6f8fb; }
+  td:first-child { font-weight: bold; width: 28%; }
+
+  figure { margin: 10px 0 14px; text-align: center; break-inside: avoid; }
+  figure img { max-width: 100%; max-height: 120mm; border: 1px solid var(--borde); border-radius: 6px; background: #f6f7f9; }
+  figure.alto img { max-height: 200mm; }
+  figure.chico img { max-width: 70%; }
+  figcaption { color: var(--suave); font-style: italic; font-size: 9pt; margin-top: 4px; }
+  .par { display: flex; gap: 12px; }
+  .par figure { flex: 1; }
+
+  ol.pasos { list-style: none; counter-reset: paso; padding: 0; margin: 0 0 10px; }
+  ol.pasos > li { counter-increment: paso; position: relative; padding-left: 30px; margin-bottom: 6px; }
+  ol.pasos > li::before { content: counter(paso); position: absolute; left: 0; top: 0; width: 20px; height: 20px; border-radius: 50%; background: var(--naranja); color: #fff; font-weight: bold; font-size: 9pt; text-align: center; line-height: 20px; }
+
+  .flujo { text-align: center; font-weight: bold; color: var(--azul); margin: 8px 0 12px; }
+  .flujo span { display: inline-block; background: #eef2f7; border: 1px solid #c9d3df; border-radius: 4px; padding: 2px 10px; margin: 0 4px; }
+</style>
+</head>
+<body>
+
+<section class="portada">
+  <img src="../../public/assets/img/logo.png" alt="Logo">
+  <div class="marca">SERVICIO TÉCNICO PC</div>
+  <div class="titulo">Manual de Usuario</div>
+  <div class="sub">Sistema de gestión del servicio técnico</div>
+  <div class="raya"></div>
+  <div class="chico">Clientes · Equipos · Órdenes · Pagos · Stock · Turnos · Reportes</div>
+  <div class="chico">Versión octubre 2026</div>
+</section>
+
+<h1>Contenido</h1>
+<ol class="indice">
+  <li>1. Primeros pasos</li>
+  <li>2. La pantalla principal</li>
+  <li>3. Clientes</li>
+  <li>4. Equipos</li>
+  <li>5. Turnos y agenda</li>
+  <li>6. Órdenes de reparación</li>
+  <li>7. Presupuestos y comprobantes</li>
+  <li>8. Pagos y deudores</li>
+  <li>9. Servicios, combos, marcas y modelos</li>
+  <li>10. Stock, repuestos y proveedores</li>
+  <li>11. Actualizar precios</li>
+  <li>12. Reportes</li>
+  <li>13. Lo que ve el cliente</li>
+  <li>14. Configuración del sistema</li>
+  <li>15. Usuarios y empleados</li>
+  <li>16. Auditoría, registro y backups</li>
+  <li>17. Rutina diaria recomendada</li>
+  <li>18. Preguntas frecuentes</li>
+</ol>
+
+<h2>Cómo leer este manual</h2>
+<p>Los nombres de los menús aparecen así: <span class="menu">📝 Órdenes › Registrar orden</span>. Los botones de cada pantalla, así: <span class="btn">Registrar pago</span>.</p>
+<div class="nota consejo"><strong>💡 Consejo</strong>Recomendaciones para trabajar más rápido.</div>
+<div class="nota atencion"><strong>⚠️ Atención</strong>Cosas que conviene saber para evitar errores.</div>
+<div class="nota admin"><strong>🔒 Solo administradores</strong>Funciones que únicamente ve un usuario con rol de administrador.</div>
+
+<!-- ============================================================ -->
+<h1 id="s1">1. Primeros pasos</h1>
+
+<h2>Ingresar al sistema</h2>
+<p>Abrí el navegador (Chrome, Firefox, Edge o Safari, en la computadora, la tablet o el celular) y entrá a la dirección del sistema. Escribí tu <strong>Usuario</strong> y <strong>Contraseña</strong> y tocá <span class="btn">Ingresar</span>.</p>
+<figure><img src="img/login.png" alt=""><figcaption>Pantalla de ingreso al sistema.</figcaption></figure>
+<ul>
+  <li>Si te equivocás <strong>5 veces seguidas</strong>, el ingreso se bloquea durante <strong>15 minutos</strong> por seguridad.</li>
+  <li>Si dejás el sistema sin usar durante <strong>8 horas</strong>, la sesión se cierra sola y hay que volver a ingresar.</li>
+</ul>
+
+<h2>La primera vez</h2>
+<p>Cuando el sistema está recién instalado y no hay ningún usuario, la pantalla de ingreso pide <strong>crear la cuenta del administrador</strong>: completá <em>Nombre y apellido</em>, <em>Usuario</em> y una contraseña, y tocá <span class="btn">Crear administrador</span>. Después, el administrador carga los datos del negocio (ver <a href="#s14">sección 14</a>) y da de alta al resto del personal (ver <a href="#s15">sección 15</a>).</p>
+
+<h2>Roles</h2>
+<table>
+  <thead><tr><th>Rol</th><th>Qué puede hacer</th></tr></thead>
+  <tr><td>Empleado</td><td>Trabajo diario: clientes, equipos, turnos, órdenes, pagos, stock, proveedores, servicios, combos, marcas y modelos.</td></tr>
+  <tr><td>Administrador</td><td>Todo lo anterior, más: configuración del sistema, usuarios, empleados, actualización masiva de precios, reportes, auditoría, registro técnico, backups y anulación de pagos.</td></tr>
+</table>
+
+<h2>La barra superior</h2>
+<p>Arriba a la derecha de todas las pantallas hay tres botones: tu <strong>nombre</strong> (👤, para cambiar tu contraseña), <strong>Salir</strong> (cierra la sesión; usalo siempre en computadoras compartidas) y <strong>Modo oscuro</strong> (🌙, cambia los colores a un fondo oscuro, más cómodo de noche o con poca luz).</p>
+
+<h2>Cambiar tu contraseña</h2>
+<p>Tocá tu nombre (👤) arriba a la derecha para abrir <strong>Cambiar mi contraseña</strong>; escribí la contraseña actual y la nueva dos veces, y tocá <span class="btn">Actualizar contraseña</span>.</p>
+<figure><img src="img/clave.png" alt=""><figcaption>Cambio de contraseña.</figcaption></figure>
+<div class="nota atencion"><strong>⚠️ ¿Te olvidaste la contraseña?</strong>Pedile a un administrador que te asigne una nueva desde <span class="menu">Configuración › Usuarios</span>. Si el que se la olvidó es el único administrador, la persona que instaló el sistema la puede restablecer desde el servidor.</div>
+
+<!-- ============================================================ -->
+<h1 id="s2">2. La pantalla principal</h1>
+
+<h2>El menú</h2>
+<p>Arriba de todas las pantallas está el menú con estos botones:</p>
+<figure><img src="img/menu.png" alt=""><figcaption>Menú principal con el submenú de Órdenes abierto.</figcaption></figure>
+<table>
+  <thead><tr><th>Botón</th><th>Contiene</th></tr></thead>
+  <tr><td>Casita (Inicio)</td><td>Vuelve al panel de inicio.</td></tr>
+  <tr><td>⚙️ Configuración</td><td>Servicios, Combos de servicios, Marcas, Modelos. Para administradores además: Sistema, Empleados, Usuarios, Auditoría y Registro del sistema.</td></tr>
+  <tr><td>👤 Clientes</td><td>Registrar cliente, Ver clientes, Deudores.</td></tr>
+  <tr><td>💻 Equipos</td><td>Registrar equipo, Ver equipos.</td></tr>
+  <tr><td>📝 Órdenes</td><td>Registrar orden, Ver órdenes y (administradores) Reportes.</td></tr>
+  <tr><td>📦 Stock</td><td>Repuestos, Proveedores y (administradores) Actualizar precios.</td></tr>
+  <tr><td>📂 Turnos</td><td>Registrar turno, Agenda semanal, Ver turnos.</td></tr>
+</table>
+<p>En el celular o la tablet, los submenús se abren tocando el botón y abajo aparece una barra con los accesos más usados; en la computadora también se abren al pasar el mouse.</p>
+
+<h2>Búsqueda rápida</h2>
+<p>Debajo del menú hay un buscador: “Buscar n° de serie, equipo, DNI, apellido u orden…”. Escribí, por ejemplo, <em>PF2ABC12</em>, <em>Lenovo</em>, <em>30111222</em>, <em>Gómez</em> o un número de orden y presioná Enter. Los resultados aparecen agrupados en <strong>Órdenes</strong>, <strong>Equipos</strong> y <strong>Clientes</strong>; tocá cualquiera para ir a su ficha. Si hay un solo resultado, el sistema va directo a esa ficha.</p>
+<figure><img src="img/busqueda.png" alt=""><figcaption>Resultados de buscar “Lenovo”.</figcaption></figure>
+<div class="nota consejo"><strong>💡 Consejo</strong>El buscador es la forma más rápida de llegar a cualquier cosa cuando el cliente está en el mostrador: con el número de orden del comprobante, o con su DNI, ya ves el equipo, su dueño y sus trabajos.</div>
+
+<h2>Panel de inicio</h2>
+<p>Es lo primero que se ve al ingresar. Arriba muestra cuatro números grandes: <strong>Turnos de hoy</strong>, <strong>Órdenes abiertas</strong>, lo <strong>cobrado en el mes</strong> y el <strong>saldo adeudado</strong> total. Debajo, el detalle en tarjetas:</p>
+<ul>
+  <li><strong>Turnos de hoy</strong>, con acceso a <span class="btn">+ Agendar</span>.</li>
+  <li><strong>Mañana · enviar recordatorios</strong>: los turnos del día siguiente, para avisar a los clientes.</li>
+  <li><strong>Órdenes abiertas</strong>: cuántas están pendientes y cuántas en proceso, con el equipo, el cliente y el técnico de cada una.</li>
+  <li><strong>Mayores saldos pendientes</strong>: los clientes que más deben (con <em>Ver todos</em> para ir a Deudores).</li>
+  <li><strong>Stock bajo mínimo</strong>: repuestos que hay que reponer.</li>
+  <li><strong>Mantenimientos a vencer en los próximos 30 días</strong>: clientes a los que les toca traer el equipo para la limpieza.</li>
+</ul>
+<figure class="alto"><img src="img/panel.png" alt=""><figcaption>Panel de inicio: arriba los totales del día y del mes; abajo el detalle de turnos, órdenes abiertas, deudas, stock y mantenimientos.</figcaption></figure>
+
+<h2>Listados</h2>
+<p>Todos los listados (clientes, equipos, órdenes, turnos, etc.) tienen un cuadro de búsqueda, se pueden ordenar tocando el título de cada columna y se muestran por páginas. Muchos tienen además un filtro por estado (activos / inactivos, o el estado de la orden o el turno).</p>
+<figure><img src="img/clientes.png" alt=""><figcaption>Listado de clientes, con buscador, orden por columnas y paginado.</figcaption></figure>
+
+<!-- ============================================================ -->
+<h1 id="s3">3. Clientes</h1>
+
+<h2>Registrar un cliente</h2>
+<ol class="pasos">
+  <li>Entrá a <span class="menu">👤 Clientes › Registrar cliente</span>.</li>
+  <li>Completá <strong>Nombre</strong>, <strong>Apellido</strong>, <strong>DNI</strong> y <strong>Teléfono</strong> (obligatorios). El teléfono va con 10 dígitos: código de área + número, sin 0 ni 15 (por ejemplo, 1123456789).</li>
+  <li>Opcionalmente, cargá <strong>Email</strong> y <strong>Dirección</strong>.</li>
+  <li>Guardá.</li>
+</ol>
+<figure><img src="img/cliente-alta.png" alt=""><figcaption>Alta de cliente.</figcaption></figure>
+<div class="nota consejo"><strong>💡 Cargá el email siempre que puedas</strong>Sin email, el cliente no recibe la confirmación ni el recordatorio de turnos, el presupuesto para aceptar online ni el aviso de equipo listo.</div>
+<div class="nota atencion"><strong>⚠️ El DNI no se puede modificar</strong>Una vez registrado el cliente, el DNI queda fijo. Revisalo bien antes de guardar.</div>
+
+<h2>La ficha del cliente</h2>
+<p>Desde <span class="menu">👤 Clientes › Ver clientes</span>, tocá un cliente para abrir su ficha. Ahí vas a encontrar:</p>
+<ul>
+  <li>La foto (botones <span class="btn">Subir foto</span> y <span class="btn">Quitar foto</span>) y el estado de deuda: <em>Debe $…</em> o <em>Sin deuda</em>.</li>
+  <li>Sus datos, con botón <span class="btn">Editar</span> y acceso directo a <strong>WhatsApp</strong>.</li>
+  <li>Sus <strong>equipos</strong> (tipo, marca, modelo y n° de serie), con <span class="btn">+ Agregar equipo</span>.</li>
+  <li>El <strong>historial de órdenes</strong> y el <strong>historial de turnos</strong>, con <span class="btn">+ Agendar turno</span>.</li>
+</ul>
+<figure class="alto"><img src="img/cliente-ficha.png" alt=""><figcaption>Ficha del cliente: foto, datos, equipos e historial.</figcaption></figure>
+
+<h2>Dar de baja un cliente</h2>
+<p>Un cliente que no tiene equipos ni turnos se puede <strong>eliminar</strong>. Si ya tiene historial, no se borra: se <strong>desactiva</strong>. Así no se pierde la información de trabajos anteriores. Un cliente inactivo sigue apareciendo en el filtro de inactivos y se puede volver a activar.</p>
+
+<!-- ============================================================ -->
+<h1 id="s4">4. Equipos</h1>
+
+<h2>Registrar un equipo</h2>
+<ol class="pasos">
+  <li>Entrá a <span class="menu">💻 Equipos › Registrar equipo</span> (o, desde la ficha del cliente, <span class="btn">+ Agregar equipo</span>, que ya trae el cliente elegido).</li>
+  <li>Elegí el <strong>Cliente</strong> y el <strong>Tipo de equipo</strong>: notebook, PC de escritorio, all-in-one, monitor, impresora, celular, tablet, consola u otro.</li>
+  <li>Elegí la <strong>Marca</strong> y después el <strong>Modelo</strong> (el listado de modelos depende de la marca).</li>
+  <li>Cargá el <strong>N° de serie</strong> si lo tiene: suele estar en una etiqueta debajo del equipo o en la caja. Es opcional, pero no puede repetirse entre dos equipos.</li>
+  <li>Opcionalmente: <strong>Procesador</strong> (ej.: Intel Core i5-1135G7), <strong>Memoria RAM</strong> (ej.: 8 GB DDR4), <strong>Almacenamiento</strong> (ej.: SSD 256 GB + HDD 1 TB), <strong>Color</strong> y <strong>Observaciones</strong> (ej.: “Windows 11, bisagra floja, tiene stickers en la tapa”).</li>
+  <li>Guardá.</li>
+</ol>
+<figure><img src="img/equipo-alta.png" alt=""><figcaption>Alta de equipo.</figcaption></figure>
+<div class="nota consejo"><strong>💡 ¿No aparece la marca o el modelo?</strong>Cargalos antes en <span class="menu">⚙️ Configuración › Marcas</span> y <span class="menu">⚙️ Configuración › Modelos</span> (ver <a href="#s9">sección 9</a>). Para una PC armada podés usar una marca “Genérica” con el modelo “PC armada”.</div>
+<div class="nota consejo"><strong>💡 Si el cliente no deja el equipo a su nombre</strong>Un mismo cliente puede tener muchos equipos (por ejemplo, una oficina con varias PC, monitores e impresoras). Al registrar otro, el sistema avisa cuántos tiene ya cargados para evitar duplicados.</div>
+
+<h2>La ficha del equipo</h2>
+<ul>
+  <li>Datos completos: cliente, n° de serie, procesador, memoria, almacenamiento, color y observaciones.</li>
+  <li><strong>Próximo mantenimiento</strong> previsto (y en qué orden se indicó).</li>
+  <li><strong>Imágenes</strong>: subí fotos con una descripción (ej.: “estado al ingresar”) con <span class="btn">Subir imagen</span>. Se aceptan JPG, PNG y WEBP de hasta 8 MB. Por privacidad, el sistema elimina de las fotos los datos ocultos como la ubicación GPS.</li>
+  <li><strong>Historial</strong> de órdenes y de turnos, y el botón <span class="btn">+ Nueva orden</span> para abrir una orden directamente para ese equipo.</li>
+</ul>
+<figure class="alto"><img src="img/equipo-ficha.png" alt=""><figcaption>Ficha del equipo con sus datos e historial.</figcaption></figure>
+<div class="nota consejo"><strong>💡 Fotos al ingreso</strong>Sacar fotos del equipo cuando entra (rayones, golpes, pantalla, teclas faltantes) evita discusiones a la hora de la entrega.</div>
+<p>Los equipos no se borran: se <strong>activan o desactivan</strong> (por ejemplo, si el cliente lo vendió o lo dio de baja).</p>
+<figure><img src="img/equipos.png" alt=""><figcaption>Listado de equipos.</figcaption></figure>
+
+<!-- ============================================================ -->
+<h1 id="s5">5. Turnos y agenda</h1>
+<p>Los turnos sirven para organizar cuándo el cliente trae o retira el equipo, o cuándo se lo atiende en el mostrador.</p>
+
+<h2>Agendar un turno</h2>
+<ol class="pasos">
+  <li>Entrá a <span class="menu">📂 Turnos › Registrar turno</span> (o desde el panel, la ficha del cliente o un espacio <strong>+ libre</strong> de la agenda semanal).</li>
+  <li>Elegí el <strong>Cliente</strong> y después el <strong>Equipo</strong> (solo aparecen los de ese cliente).</li>
+  <li>Indicá <strong>Fecha</strong>, <strong>Hora</strong> y una <strong>Descripción / falla del equipo</strong> (ej.: “no enciende”, “limpieza y cambio de pasta térmica”). Debajo se muestra el horario de atención como referencia. El <strong>Estado</strong> arranca en <em>Pendiente</em>.</li>
+  <li>Tocá <span class="btn">Confirmar turno</span>.</li>
+</ol>
+<figure><img src="img/turno-alta.png" alt=""><figcaption>Formulario para agendar un turno.</figcaption></figure>
+<p>El sistema no permite agendar en fechas pasadas, fuera del horario de atención, en feriados ni cuando ya están ocupados todos los lugares de ese horario (la cantidad de turnos simultáneos se define en la configuración, por ejemplo según cuántos técnicos atienden el mostrador).</p>
+
+<h2>Estados de un turno</h2>
+<table>
+  <thead><tr><th>Estado</th><th>Significado</th></tr></thead>
+  <tr><td>Pendiente</td><td>Agendado, el cliente todavía no confirmó.</td></tr>
+  <tr><td>Confirmado</td><td>El cliente confirmó que va (desde el email o porque lo marcaste vos).</td></tr>
+  <tr><td>Realizado</td><td>El cliente vino. Pasa solo a este estado al crear la orden desde el turno.</td></tr>
+  <tr><td>Cancelado</td><td>Se canceló (por el negocio o por el cliente). Libera el lugar.</td></tr>
+  <tr><td>No asistió</td><td>El cliente no vino. También libera el lugar.</td></tr>
+</table>
+<p>El estado se cambia directamente desde el desplegable de cada fila en <span class="menu">📂 Turnos › Ver turnos</span>, que además se puede filtrar por <em>Próximos</em>, <em>Pasados</em> o <em>Todos</em>, y por estado.</p>
+<figure><img src="img/turnos.png" alt=""><figcaption>Listado de turnos con el estado editable y los botones de cada turno.</figcaption></figure>
+
+<h2>Confirmación y recordatorios al cliente</h2>
+<p>Si el cliente tiene email y está activado en la configuración:</p>
+<ul>
+  <li>Al <strong>agendar</strong> el turno, el cliente recibe un email con un link para <strong>confirmar o cancelar</strong>.</li>
+  <li>Si el turno se <strong>reprograma</strong> (cambio de fecha u hora), se le vuelve a pedir la confirmación.</li>
+  <li>El <strong>día hábil anterior</strong> al turno, el sistema le envía un <strong>recordatorio automático</strong> (solo en días hábiles y dentro del horario de atención).</li>
+</ul>
+<p>En cada turno se ve el estado de la confirmación (<em>✔ Confirmado por el cliente</em>, <em>✖ Cancelado por el cliente</em> o <em>Esperando confirmación</em>) y hasta tres botones. <strong>Recordar</strong> y <strong>Pedir confirmación</strong> aparecen solo cuando el envío de emails está configurado y el cliente tiene email:</p>
+<table>
+  <thead><tr><th>Botón</th><th>Qué hace</th></tr></thead>
+  <tr><td><span class="btn">Recordar</span></td><td>Envía ahora el recordatorio por email.</td></tr>
+  <tr><td><span class="btn">Pedir confirmación</span></td><td>Reenvía el email para confirmar o cancelar.</td></tr>
+  <tr><td><span class="btn">WhatsApp</span></td><td>Abre WhatsApp con el mensaje de recordatorio ya escrito; solo queda tocar “enviar”.</td></tr>
+</table>
+
+<h2>Agenda semanal</h2>
+<p><span class="menu">📂 Turnos › Agenda semanal</span> muestra la semana en una grilla por día y hora, con los turnos de cada franja y los lugares <strong>+ libre</strong> (tocá uno para agendar ahí). Los feriados aparecen marcados. Navegá con <span class="btn">← Anterior</span>, <span class="btn">Esta semana</span> y <span class="btn">Siguiente →</span>. Pasando el mouse por un turno se ve el cliente, el equipo y el motivo.</p>
+<figure><img src="img/agenda.png" alt=""><figcaption>Agenda semanal: los colores indican el estado de cada turno; los días que no se atiende aparecen en gris.</figcaption></figure>
+
+<h2>Cuando el cliente llega</h2>
+<p>En la fila del turno, tocá <span class="btn">Crear orden</span>. Se abre una orden nueva con el equipo y la falla ya cargados, y al guardarla el turno queda como <strong>Realizado</strong>.</p>
+<figure><img src="img/orden-desde-turno.png" alt=""><figcaption>Orden creada desde un turno: ya trae el equipo y la falla reportada.</figcaption></figure>
+
+<!-- ============================================================ -->
+<h1 id="s6">6. Órdenes de reparación</h1>
+<p>La orden es el centro del sistema: registra qué equipo entró, en qué estado, qué se le hace, cuánto cuesta, quién lo hace y cuánto pagó el cliente.</p>
+<div class="flujo"><span>Pendiente</span> → <span>En proceso</span> → <span>Finalizado</span> o <span>Cancelado</span></div>
+
+<h2>Crear una orden (recepción del equipo)</h2>
+<ol class="pasos">
+  <li>Entrá a <span class="menu">📝 Órdenes › Registrar orden</span> (o desde un turno, o desde la ficha del equipo con <span class="btn">+ Nueva orden</span>).</li>
+  <li>Elegí el <strong>Equipo</strong> y, si ya se sabe, el <strong>Técnico asignado</strong>.</li>
+  <li>Elegí uno o más <strong>Servicios</strong> (obligatorio, al menos uno; por ejemplo <em>Diagnóstico</em>) y los <strong>Repuestos</strong> que se usan. Al lado de cada repuesto se ve su precio y el stock disponible.</li>
+  <li>Completá los datos de ingreso:
+    <ul>
+      <li><strong>Falla reportada</strong>: lo que cuenta el cliente (“no enciende”, “se apaga sola”, “pantalla azul”).</li>
+      <li><strong>Accesorios recibidos</strong>: todo lo que deja junto con el equipo (cargador, funda, mouse, cables).</li>
+      <li><strong>Estado físico al ingresar</strong>: golpes, rayones, teclas faltantes, bisagras flojas.</li>
+    </ul>
+  </li>
+  <li>Si corresponde, usá <strong>Agregar combo</strong> para sumar de una vez todos los ítems de un combo (ej.: “Mantenimiento completo”).</li>
+  <li>En la tabla de detalle, ajustá la <strong>Cantidad</strong> y el <strong>Precio unitario</strong> de cada ítem. El precio sugerido es el del catálogo; podés cambiarlo para esa orden.</li>
+  <li>Revisá el <strong>Total estimado</strong> y guardá.</li>
+</ol>
+<figure class="alto"><img src="img/orden-form.png" alt=""><figcaption>Edición de una orden: equipo, técnico, servicios, repuestos, datos de ingreso, detalle con cantidades y precios, y datos del trabajo.</figcaption></figure>
+<div class="nota atencion"><strong>⚠️ Accesorios y estado físico, siempre</strong>Se imprimen en el presupuesto y en el comprobante. Son la constancia de qué se recibió y cómo, para devolver exactamente lo mismo.</div>
+
+<h2>Otros campos de la orden</h2>
+<table>
+  <thead><tr><th>Campo</th><th>Para qué sirve</th></tr></thead>
+  <tr><td>Diagnóstico</td><td>Lo que encontró el técnico al revisar el equipo. Aparece en el presupuesto.</td></tr>
+  <tr><td>Trabajo realizado</td><td>Lo que efectivamente se hizo. Se imprime en el comprobante de entrega.</td></tr>
+  <tr><td>Próximo mantenimiento</td><td>Cuándo conviene que el cliente vuelva para la limpieza y el cambio de pasta térmica. El botón <span class="btn">Sugerir</span> completa la fecha según la configuración (por ejemplo, dentro de 12 meses) y el sistema le avisa al cliente cuando se acerca.</td></tr>
+  <tr><td>Notas internas</td><td>Comentarios para el equipo de trabajo (ej.: “la pantalla llega el jueves”). No se imprimen ni las ve el cliente.</td></tr>
+</table>
+
+<h2>Precios congelados</h2>
+<p>El precio de cada ítem queda guardado en la orden al momento de crearla. Si después se actualizan los precios del catálogo, las órdenes ya hechas no cambian.</p>
+
+<h2>Cambiar el estado</h2>
+<p>En <span class="menu">📝 Órdenes › Ver órdenes</span>, cada fila tiene un desplegable para cambiar el estado. Al pasar a <strong>Finalizado</strong>:</p>
+<ul>
+  <li>Se registra la fecha de finalización.</li>
+  <li>Se descuenta del stock la cantidad de cada repuesto usado.</li>
+  <li>Si está activado, el cliente recibe un email avisando que su <strong>equipo está listo</strong> para retirar, con el saldo a abonar (una sola vez por orden).</li>
+</ul>
+<p>Si una orden finalizada se reabre o se cancela, el stock se repone automáticamente.</p>
+<figure><img src="img/ordenes.png" alt=""><figcaption>Listado de órdenes: el estado se cambia desde el desplegable de cada fila.</figcaption></figure>
+<div class="nota atencion"><strong>⚠️ Qué se puede editar</strong>Solo se editan las órdenes <strong>Pendientes</strong> o <strong>En proceso</strong>. Además, el total de la orden no puede quedar por debajo de lo que el cliente ya pagó.</div>
+
+<h2>La ficha de la orden</h2>
+<p>Tocá <span class="btn">Ver</span> en una orden para abrir su ficha. Ahí está todo: estado, fecha, técnico, cliente y equipo (con n° de serie y accesorios), falla reportada, estado al ingresar, diagnóstico, trabajo realizado, detalle de ítems con <strong>Total</strong>, <strong>Pagado</strong> y <strong>Saldo</strong>, los pagos, y un <strong>Historial</strong> con cada cambio que tuvo la orden (quién y cuándo). Arriba están los botones de presupuesto y comprobante, que se explican a continuación.</p>
+<figure class="alto"><img src="img/orden-ficha.png" alt=""><figcaption>Ficha de una orden en proceso, con su detalle, un pago parcial y el formulario para registrar otro.</figcaption></figure>
+
+<!-- ============================================================ -->
+<h1 id="s7">7. Presupuestos y comprobantes</h1>
+<p>Desde la ficha de la orden:</p>
+<table>
+  <thead><tr><th>Botón</th><th>Qué hace</th></tr></thead>
+  <tr><td><span class="btn">Presupuesto</span></td><td>Muestra el presupuesto listo para imprimir (con datos del negocio, cliente, equipo, accesorios, ítems, falla, diagnóstico, validez, formas de pago y observaciones).</td></tr>
+  <tr><td><span class="btn">Presupuesto PDF</span></td><td>Descarga el presupuesto en PDF, para mandarlo por WhatsApp o guardarlo.</td></tr>
+  <tr><td><span class="btn">✉ Enviar presupuesto</span></td><td>Le manda al cliente un email con un link para ver el presupuesto y aceptarlo o rechazarlo online. Aparece solo si el envío de emails está configurado y la orden está pendiente o en proceso; queda deshabilitado si el cliente no tiene email.</td></tr>
+  <tr><td><span class="btn">Comprobante de entrega</span></td><td>El comprobante para imprimir al entregar el equipo: incluye el trabajo realizado, lo pagado, el saldo, el próximo mantenimiento recomendado, la garantía y el espacio para la firma del cliente.</td></tr>
+  <tr><td><span class="btn">Entrega PDF</span></td><td>El mismo comprobante en PDF.</td></tr>
+</table>
+<figure><img src="img/orden-finalizada.png" alt=""><figcaption>Una orden finalizada muestra además los botones del comprobante de entrega.</figcaption></figure>
+<figure class="alto"><img src="img/presupuesto.png" alt=""><figcaption>Presupuesto listo para imprimir o descargar en PDF.</figcaption></figure>
+<figure class="alto"><img src="img/comprobante.png" alt=""><figcaption>Comprobante de entrega.</figcaption></figure>
+<div class="nota consejo"><strong>💡 Imprimí el presupuesto al recibir el equipo</strong>Entregarle una copia al cliente con el número de orden le sirve de comprobante de ingreso y le permite consultar el estado en el portal (ver <a href="#s13">sección 13</a>).</div>
+
+<h2>Respuesta del cliente</h2>
+<p>Cuando el cliente responde desde el link, la ficha de la orden lo muestra: <em>✔ Presupuesto aceptado por el cliente</em> o <em>✖ Presupuesto rechazado por el cliente</em> (con la fecha). Si todavía no contestó, dice <em>Presupuesto enviado el …, sin respuesta</em>. En el listado de órdenes también se marcan los rechazados.</p>
+<ul>
+  <li>Si está configurado, al aceptar el presupuesto la orden pasa sola a <strong>En proceso</strong>.</li>
+  <li>También se puede configurar que el negocio reciba un email cada vez que un cliente acepta o rechaza.</li>
+  <li>Si se modifica un presupuesto que el cliente ya había aceptado (otro repuesto, otro precio), la aceptación queda sin efecto y se le avisa para que lo vuelva a aceptar.</li>
+  <li>El presupuesto tiene una <strong>validez</strong> en días; vencido ese plazo, el cliente ya no puede aceptarlo y se le pide que se comunique con el negocio.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h1 id="s8">8. Pagos y deudores</h1>
+
+<h2>Registrar un pago</h2>
+<ol class="pasos">
+  <li>Abrí la ficha de la orden.</li>
+  <li>En <strong>Registrar pago</strong>, completá <strong>Monto</strong>, <strong>Forma de pago</strong> (contado, transferencia, Mercado Pago, etc., según lo configurado), <strong>Fecha</strong> y, si querés, una <strong>Observación</strong>.</li>
+  <li>Tocá <span class="btn">Registrar pago</span>.</li>
+</ol>
+<p>Se aceptan pagos parciales (por ejemplo, una seña para pedir un repuesto y el resto al retirar). Un pago no puede superar el saldo de la orden. Cada pago queda registrado con quién lo cargó.</p>
+<div class="nota admin"><strong>🔒 Anular un pago</strong>Si se cargó un pago por error, un administrador puede anularlo con el botón <span class="btn">Anular</span> en la lista de pagos de la orden. Queda registrado en la auditoría.</div>
+
+<h2>Deudores</h2>
+<p><span class="menu">👤 Clientes › Deudores</span> lista los clientes con saldo pendiente, con el total adeudado, la cantidad de órdenes y el saldo de cada uno. Se consideran deudores los clientes con órdenes <strong>finalizadas</strong> que no se terminaron de pagar (las órdenes todavía abiertas no cuentan como deuda).</p>
+<figure><img src="img/deudores.png" alt=""><figcaption>Listado de deudores.</figcaption></figure>
+
+<!-- ============================================================ -->
+<h1 id="s9">9. Servicios, combos, marcas y modelos</h1>
+<p>Todos están en <span class="menu">⚙️ Configuración</span> y los puede manejar cualquier usuario.</p>
+
+<h2>Servicios</h2>
+<p>Los trabajos que ofrece el negocio (diagnóstico, formateo, limpieza interna, cambio de pantalla, etc.), con <strong>Nombre</strong>, <strong>Precio base</strong> y <strong>Descripción</strong>. El precio base es el que se sugiere al cargar una orden.</p>
+<figure class="alto"><img src="img/servicios.png" alt=""><figcaption>Catálogo de servicios: el formulario de alta arriba y el listado abajo.</figcaption></figure>
+
+<h2>Combos de servicios</h2>
+<p>Un combo agrupa servicios y repuestos que suelen ir juntos (ej.: “Mantenimiento completo” = limpieza interna + cambio de pasta térmica + una jeringa de pasta). Al crearlo elegís los ítems y sus cantidades, y se muestra el total a precios actuales. Con la opción <strong>Combo activo</strong> decidís si aparece al cargar órdenes.</p>
+<figure><img src="img/combo.png" alt=""><figcaption>Edición de un combo.</figcaption></figure>
+<div class="nota consejo"><strong>💡 El combo no tiene precio fijo</strong>Al agregarlo a una orden, cada ítem toma el precio vigente del catálogo, así que el combo siempre está actualizado.</div>
+
+<h2>Marcas y modelos</h2>
+<p>Primero se carga la marca y después sus modelos. Se usan al registrar equipos.</p>
+<figure><img src="img/modelos.png" alt=""><figcaption>Modelos, cada uno asociado a su marca.</figcaption></figure>
+<div class="nota atencion"><strong>⚠️ Bajas protegidas</strong>No se puede eliminar una marca, modelo, servicio, repuesto o proveedor que esté en uso (por ejemplo, un servicio que aparece en alguna orden).</div>
+
+<!-- ============================================================ -->
+<h1 id="s10">10. Stock, repuestos y proveedores</h1>
+
+<h2>Repuestos</h2>
+<p>En <span class="menu">📦 Stock › Repuestos</span> se cargan los repuestos y componentes (discos, memorias, pantallas, teclados, cargadores, baterías, tintas…) con <strong>Código</strong>, <strong>Nombre</strong>, <strong>Costo</strong>, <strong>Precio de venta</strong>, <strong>Proveedor habitual</strong>, <strong>Stock mínimo</strong> y <strong>Descripción</strong>. Al escribir el costo, el sistema sugiere el precio de venta según el margen configurado y muestra el margen resultante. El listado muestra el stock actual y resalta los que están en el mínimo o por debajo.</p>
+<figure class="alto"><img src="img/repuestos.png" alt=""><figcaption>Repuestos con costo, precio, margen y stock.</figcaption></figure>
+
+<h2>Movimientos de stock</h2>
+<p>Tocá <span class="btn">Stock</span> en un repuesto para ver su stock actual y su historial. Desde ahí:</p>
+<table>
+  <thead><tr><th>Acción</th><th>Cuándo usarla</th></tr></thead>
+  <tr><td>Registrar ingreso</td><td>Cuando llega mercadería. Cargá <strong>Cantidad</strong>, <strong>Proveedor</strong>, <strong>Costo unitario</strong> y el <strong>Comprobante / observación</strong> (ej.: “Factura A 0001-00001234”). El stock sube. Si tildás <strong>Actualizar el precio de venta</strong>, el precio se recalcula con el margen configurado sobre el nuevo costo.</td></tr>
+  <tr><td>Ajustar por conteo</td><td>Cuando contás y la cantidad real no coincide con el sistema. Cargá el <strong>Stock real</strong> y el <strong>Motivo</strong> (ej.: “Inventario mensual”).</td></tr>
+  <tr><td>Descuento por orden</td><td>Automático al finalizar una orden; no hay que hacer nada.</td></tr>
+</table>
+<p>La tabla de <strong>Movimientos</strong> muestra fecha, tipo, cantidad, costo, stock resultante, detalle (con link a la orden si corresponde) y usuario.</p>
+<figure class="alto"><img src="img/repuesto-stock.png" alt=""><figcaption>Ingresos, ajustes y movimientos de un repuesto.</figcaption></figure>
+<div class="nota atencion"><strong>⚠️ Stock insuficiente</strong>Por defecto, una orden se puede finalizar aunque un repuesto no alcance: el stock queda negativo hasta el próximo ingreso, y el repuesto aparece en <em>Stock bajo mínimo</em>. Un administrador puede impedirlo en la configuración.</div>
+
+<h2>Proveedores</h2>
+<p>En <span class="menu">📦 Stock › Proveedores</span>: <strong>Nombre / razón social</strong>, <strong>CUIT</strong>, <strong>Persona de contacto</strong>, <strong>Teléfono</strong>, <strong>Email</strong>, <strong>Dirección</strong>, <strong>Observaciones</strong> y si está activo.</p>
+<figure><img src="img/proveedor.png" alt=""><figcaption>Ficha de un proveedor.</figcaption></figure>
+
+<!-- ============================================================ -->
+<h1 id="s11">11. Actualizar precios</h1>
+<div class="nota admin"><strong>🔒 Solo administradores</strong><span class="menu">📦 Stock › Actualizar precios</span></div>
+<p>Sirve para subir (o bajar) muchos precios de una vez, por ejemplo cuando hay inflación o un proveedor actualiza su lista.</p>
+<ol class="pasos">
+  <li>Elegí <strong>Aplicar a</strong> (servicios, repuestos o ambos) y, si querés, <strong>Solo repuestos del proveedor</strong>.</li>
+  <li>Escribí el <strong>Porcentaje</strong> (un número negativo baja los precios) y elegí el <strong>Redondeo</strong>. En un aumento se redondea hacia arriba; en una rebaja, hacia abajo.</li>
+  <li>Tocá <span class="btn">Ver cambios</span>. Aparece una vista previa con el precio actual, el nuevo y la diferencia.</li>
+  <li>Destildá los ítems que no quieras modificar.</li>
+  <li>Tocá <span class="btn">Aplicar precios</span>.</li>
+</ol>
+<figure class="alto"><img src="img/precios.png" alt=""><figcaption>Vista previa de un aumento del 10 %.</figcaption></figure>
+<div class="nota consejo"><strong>💡 Nada cambia hasta confirmar</strong>La vista previa no guarda nada. Las órdenes ya creadas mantienen sus precios.</div>
+
+<!-- ============================================================ -->
+<h1 id="s12">12. Reportes</h1>
+<div class="nota admin"><strong>🔒 Solo administradores</strong><span class="menu">📝 Órdenes › Reportes</span></div>
+<p>Elegí el período con <strong>Desde</strong> y <strong>Hasta</strong> y tocá <span class="btn">Ver</span>. Reportes disponibles:</p>
+<ul>
+  <li><strong>Cobrado por mes y forma de pago</strong>.</li>
+  <li><strong>Servicios más realizados</strong> y <strong>Repuestos más usados</strong>: cantidad, órdenes en que aparecen y total facturado.</li>
+  <li><strong>Órdenes por técnico</strong>: órdenes totales, finalizadas y abiertas, y facturación de cada uno.</li>
+  <li><strong>Stock valorizado</strong> (al día de hoy): cuánto vale el stock, a costo y a precio de venta.</li>
+</ul>
+<p>Cada reporte se puede descargar con <span class="btn">⬇ Excel (CSV)</span>. Las órdenes se cuentan por su fecha de creación y los pagos por su fecha de cobro. Las órdenes canceladas no se incluyen.</p>
+<figure class="alto"><img src="img/reportes.png" alt=""><figcaption>Pantalla de reportes.</figcaption></figure>
+
+<!-- ============================================================ -->
+<h1 id="s13">13. Lo que ve el cliente</h1>
+<p>El cliente no necesita usuario ni contraseña. Interactúa con el negocio por tres caminos:</p>
+
+<h2>Portal “Seguí tu equipo”</h2>
+<p>En la dirección del sistema seguida de <strong>/seguimiento</strong> (por ejemplo, <em>https://turnos.miservicio.com.ar/seguimiento</em>), el cliente ingresa su <strong>DNI</strong> (sin puntos) y el <strong>número de una de sus órdenes</strong> (figura en el presupuesto y en el comprobante), y ve:</p>
+<ul>
+  <li>Sus <strong>próximos turnos</strong>.</li>
+  <li>Sus <strong>trabajos</strong>: cada orden con el equipo, una barra de avance (<em>Recibido → En reparación → Listo</em>) y, si está habilitado, el total y el saldo pendiente.</li>
+</ul>
+<div class="par">
+  <figure><img src="img/portal-consulta.png" alt=""><figcaption>Consulta con DNI y número de orden.</figcaption></figure>
+  <figure><img src="img/portal-resultado.png" alt=""><figcaption>Lo que ve el cliente.</figcaption></figure>
+</div>
+<p>Por seguridad, el portal no muestra datos de contacto, da el mismo mensaje si el DNI no existe o la orden no es suya, y bloquea 15 minutos tras 10 consultas fallidas.</p>
+<div class="nota consejo"><strong>💡 Compartilo</strong>Podés poner el link del portal en el estado de WhatsApp, en Instagram o en un cartel en el mostrador, para que los clientes consulten solos si su equipo está listo.</div>
+
+<h2>Email de turno</h2>
+<p>El cliente ve los datos del turno (fecha, hora, equipo, motivo) y dos botones: <em>✔ Confirmo que voy</em> o <em>✖ Cancelar turno</em>. Lo que elija se refleja al instante en la agenda.</p>
+
+<h2>Email de presupuesto</h2>
+<p>El cliente ve el detalle del presupuesto (equipo, falla, diagnóstico e ítems), puede descargarlo en PDF y tocar <em>✔ Acepto el presupuesto</em> o <em>No lo acepto</em>. Si lo rechazó y cambia de opinión, todavía puede aceptarlo mientras esté vigente. Desde ahí también puede entrar directo a ver el estado del trabajo, sin escribir el DNI ni el número de orden.</p>
+
+<!-- ============================================================ -->
+<h1 id="s14">14. Configuración del sistema</h1>
+<div class="nota admin"><strong>🔒 Solo administradores</strong><span class="menu">⚙️ Configuración › Sistema</span>. Cada pestaña se guarda con <span class="btn">💾 Guardar</span>.</div>
+<table>
+  <thead><tr><th>Pestaña</th><th>Qué se configura</th></tr></thead>
+  <tr><td>Negocio</td><td>Nombre, CUIT, dirección, teléfono, WhatsApp y email. Aparecen en presupuestos, comprobantes, emails y el portal. <strong>Es lo primero que hay que completar.</strong></td></tr>
+  <tr><td>Presupuestos</td><td>Validez del presupuesto y días de garantía; formas de pago (una por línea, son las que se ofrecen al registrar un pago); observaciones y mensaje legal impresos en el presupuesto (por ejemplo, el plazo para retirar equipos o la recomendación de hacer una copia de seguridad); si al aceptar el presupuesto la orden pasa sola a <em>En proceso</em>.</td></tr>
+  <tr><td>Turnos y horario</td><td>Horario de atención por día (si atiende, desde y hasta); no permitir turnos fuera de horario ni en feriados; turnos simultáneos por horario; franjas de la agenda semanal (minutos); feriados (uno por línea, AAAA-MM-DD, con botón <span class="btn">Importar los feriados nacionales</span> de Argentina); pedir confirmación al agendar; recordatorio automático el día hábil anterior y a partir de qué hora.</td></tr>
+  <tr><td>Mantenimiento preventivo</td><td>Intervalo sugerido en meses para el próximo mantenimiento; aviso automático al cliente y con cuántos días de anticipación.</td></tr>
+  <tr><td>Avisos</td><td>Canales para confirmaciones y recordatorios (email activo; WhatsApp Business “próximamente”); avisar al negocio cuando un cliente responde un presupuesto; avisar al cliente que el equipo está listo; mostrar el botón de WhatsApp manual; código de país. Abajo, la lista de últimos avisos enviados con su resultado.</td></tr>
+  <tr><td>Mensajes</td><td>Los textos de los emails y mensajes a clientes. Se pueden usar variables (por ejemplo, el nombre del cliente, el equipo o la fecha del turno) que el sistema reemplaza automáticamente; en la pantalla se listan las disponibles.</td></tr>
+  <tr><td>Stock</td><td>Permitir finalizar órdenes aunque el stock quede negativo; margen sugerido sobre el costo (%).</td></tr>
+  <tr><td>Portal de clientes</td><td>Habilitar el portal; pedir el número de una orden además del DNI (recomendado); mostrar totales y saldos; cantidad de trabajos a mostrar.</td></tr>
+  <tr><td>Backups</td><td>Ver <a href="#s16">sección 16</a>.</td></tr>
+</table>
+<figure class="alto"><img src="img/config-turnos.png" alt=""><figcaption>Pestaña “Turnos y horario”.</figcaption></figure>
+<div class="nota atencion"><strong>⚠️ Feriados</strong>Al empezar cada año, importá los feriados nacionales y agregá a mano los días que el negocio no abre (vacaciones, puentes). Así no se agendan turnos ni salen recordatorios esos días.</div>
+<div class="nota consejo"><strong>💡 Si los emails no salen</strong>En la pestaña <strong>Avisos</strong>, el canal email debe figurar como listo. Si dice “falta configurar”, hay que pedirle a quien instaló el sistema que configure el servidor de correo.</div>
+<figure><img src="img/config-negocio.png" alt=""><figcaption>Pestaña “Negocio”.</figcaption></figure>
+<figure class="alto"><img src="img/config-trabajo.png" alt=""><figcaption>Pestaña “Presupuestos”.</figcaption></figure>
+<figure><img src="img/config-mantenimiento.png" alt=""><figcaption>Pestaña “Mantenimiento preventivo”.</figcaption></figure>
+<figure><img src="img/config-portal.png" alt=""><figcaption>Pestaña “Portal de clientes”.</figcaption></figure>
+<figure class="alto"><img src="img/config-notificaciones.png" alt=""><figcaption>Pestaña “Avisos”, con el estado de cada canal y los últimos avisos enviados.</figcaption></figure>
+<figure class="alto"><img src="img/config-mensajes.png" alt=""><figcaption>Pestaña “Mensajes”: los textos que recibe el cliente.</figcaption></figure>
+
+<!-- ============================================================ -->
+<h1 id="s15">15. Usuarios y empleados</h1>
+<div class="nota admin"><strong>🔒 Solo administradores</strong></div>
+
+<h2>Usuarios</h2>
+<p>Son las personas que ingresan al sistema. En <span class="menu">⚙️ Configuración › Usuarios</span> se ve la lista con su rol, estado y último acceso. Con <span class="btn">+ Nuevo usuario</span> se carga <strong>Nombre y apellido</strong>, <strong>Usuario</strong>, <strong>Rol</strong> (empleado o administrador) y contraseña. Con la opción <strong>Usuario activo</strong> se habilita o bloquea su ingreso.</p>
+<ul>
+  <li>Para restablecer la contraseña de alguien, editá el usuario y asignale una nueva.</li>
+  <li>Cuando alguien deja de trabajar en el negocio, desactivá su usuario.</li>
+  <li>El sistema siempre exige que quede al menos un administrador activo.</li>
+</ul>
+<figure><img src="img/usuarios.png" alt=""><figcaption>Usuarios del sistema.</figcaption></figure>
+<figure><img src="img/usuario-alta.png" alt=""><figcaption>Alta de usuario.</figcaption></figure>
+
+<h2>Empleados</h2>
+<p>Son el personal del negocio (técnicos, personal de mostrador), tengan o no usuario. En <span class="menu">⚙️ Configuración › Empleados</span> se carga <strong>Nombre</strong>, <strong>Apellido</strong>, <strong>DNI</strong>, <strong>Puesto</strong>, <strong>Teléfono</strong>, <strong>Fecha de ingreso</strong> y <strong>Email</strong>. Los empleados activos aparecen como <strong>Técnico asignado</strong> en las órdenes y en el reporte por técnico.</p>
+<figure><img src="img/empleados.png" alt=""><figcaption>Empleados del negocio.</figcaption></figure>
+
+<!-- ============================================================ -->
+<h1 id="s16">16. Auditoría, registro y backups</h1>
+<div class="nota admin"><strong>🔒 Solo administradores</strong></div>
+
+<h2>Auditoría</h2>
+<p><span class="menu">⚙️ Configuración › Auditoría</span> responde quién hizo qué y cuándo: cambios de estado, pagos, movimientos de stock, cambios de precios, configuración e ingresos al sistema, con el usuario y la IP. Se filtra por tipo (<em>Sobre</em>), <em>Usuario</em> y fechas.</p>
+<figure class="alto"><img src="img/auditoria.png" alt=""><figcaption>Auditoría.</figcaption></figure>
+
+<h2>Registro del sistema</h2>
+<p><span class="menu">⚙️ Configuración › Registro del sistema</span> es un registro técnico (errores y eventos internos). Es útil para el soporte técnico: si aparece una pantalla de error, anotá el <strong>código de error</strong> que figura en ella y pasáselo a quien da soporte; con ese código se encuentra el problema en este registro.</p>
+<figure><img src="img/registro.png" alt=""><figcaption>Registro técnico del sistema.</figcaption></figure>
+
+<h2>Backups</h2>
+<p>El sistema hace una <strong>copia de seguridad automática todos los días</strong> de la base de datos y de las imágenes. En <span class="menu">⚙️ Configuración › Sistema › Backups</span> se configura a partir de qué hora y cuántas copias conservar; se puede tocar <span class="btn">Generar backup ahora</span> y <span class="btn">Descargar</span> cualquiera de los backups disponibles.</p>
+<figure><img src="img/config-backups.png" alt=""><figcaption>Pestaña “Backups”.</figcaption></figure>
+<div class="nota atencion"><strong>⚠️ Guardá una copia fuera del local</strong>Si la computadora del sistema se rompe o la roban, los backups que están en ella se pierden también. Descargá un backup periódicamente (por ejemplo, una vez por semana) y guardalo en un pendrive o en la nube.</div>
+
+<!-- ============================================================ -->
+<h1 id="s17">17. Rutina diaria recomendada</h1>
+
+<h2>Al abrir</h2>
+<ol class="pasos">
+  <li>Mirá el panel de inicio: turnos de hoy, órdenes abiertas, stock bajo mínimo y mantenimientos por vencer.</li>
+  <li>Revisá qué turnos de hoy no están confirmados y, si hace falta, llamá o usá <span class="btn">WhatsApp</span>.</li>
+</ol>
+
+<h2>Cuando llega un cliente con un equipo</h2>
+<ol class="pasos">
+  <li>Buscalo por DNI o apellido en el buscador. Si es nuevo, registrá el cliente y el equipo (con el n° de serie, si lo tiene).</li>
+  <li>Si tenía turno, tocá <span class="btn">Crear orden</span> en el turno. Si no, creá la orden desde el equipo.</li>
+  <li>Cargá la <strong>falla reportada</strong>, los <strong>accesorios</strong> que deja y el <strong>estado físico</strong>, y sacá fotos del equipo.</li>
+  <li>Imprimí el presupuesto o compartí el PDF: el número de orden es su comprobante de ingreso.</li>
+</ol>
+
+<h2>Durante el trabajo</h2>
+<ol class="pasos">
+  <li>Asigná el técnico, cargá el <strong>diagnóstico</strong> y ajustá servicios y repuestos.</li>
+  <li>Enviá el presupuesto por email y esperá la aceptación (o confirmala por teléfono).</li>
+  <li>Pasá la orden a <strong>En proceso</strong>. Si aparecen trabajos o repuestos extra, editá la orden: si el cliente ya había aceptado, se le pide que vuelva a aceptar.</li>
+</ol>
+
+<h2>En la entrega</h2>
+<ol class="pasos">
+  <li>Completá el <strong>Trabajo realizado</strong> y el <strong>Próximo mantenimiento</strong>.</li>
+  <li>Pasá la orden a <strong>Finalizado</strong> (se descuenta el stock y se avisa al cliente que su equipo está listo).</li>
+  <li>Al retirar, devolvé los accesorios que figuran en la orden, registrá el pago e imprimí el <strong>Comprobante de entrega</strong> para que lo firme.</li>
+</ol>
+
+<h2>Al cerrar</h2>
+<ol class="pasos">
+  <li>Revisá la tarjeta <strong>Mañana · enviar recordatorios</strong> (los automáticos salen solos si están activados).</li>
+  <li>Una vez por semana: revisá <strong>Deudores</strong> y <strong>Stock bajo mínimo</strong>, y descargá un backup.</li>
+</ol>
+
+<!-- ============================================================ -->
+<h1 id="s18">18. Preguntas frecuentes</h1>
+<table>
+  <thead><tr><th>Pregunta</th><th>Respuesta</th></tr></thead>
+  <tr><td>No puedo agendar un turno en cierto horario.</td><td>Puede ser fuera del horario de atención, un feriado, una fecha pasada o que ya estén ocupados todos los lugares simultáneos. Probá otra hora o mirá la agenda semanal para ver los lugares libres.</td></tr>
+  <tr><td>No puedo editar una orden.</td><td>Solo se editan órdenes Pendientes o En proceso. Si está finalizada, volvela a En proceso (el stock se repone), editala y volvé a finalizarla.</td></tr>
+  <tr><td>Un repuesto quedó con stock negativo.</td><td>Se finalizó una orden sin stock suficiente. Registrá el ingreso del repuesto cuando llegue y el stock se corrige solo.</td></tr>
+  <tr><td>El equipo no tiene número de serie (o no se lee).</td><td>No hace falta: el n° de serie es opcional. Describí el equipo en las observaciones y sacale una foto.</td></tr>
+  <tr><td>El sistema dice que el n° de serie ya existe.</td><td>Ese equipo ya está registrado, quizás a nombre de otro cliente. Buscalo por el n° de serie; si cambió de dueño, editalo y elegí el cliente nuevo (las órdenes viejas siguen siendo del anterior).</td></tr>
+  <tr><td>El botón “Enviar presupuesto” está deshabilitado.</td><td>El cliente no tiene email cargado. Agregalo en la ficha del cliente, o descargá el PDF y mandalo por WhatsApp.</td></tr>
+  <tr><td>El cliente no recibió el email.</td><td>Pedile que revise la carpeta de spam y verificá que el email esté bien escrito. Un administrador puede ver en <span class="menu">Configuración › Sistema › Avisos</span> si el envío salió o falló.</td></tr>
+  <tr><td>El cliente no puede entrar al portal.</td><td>Tiene que escribir el DNI sin puntos y el número de una orden suya (el que figura en el presupuesto o el comprobante). Si se equivocó muchas veces, tiene que esperar 15 minutos.</td></tr>
+  <tr><td>No puedo borrar un servicio, repuesto o cliente.</td><td>Está en uso (en alguna orden, equipo o turno). Para no perder el historial, el sistema no lo deja borrar; en el caso de clientes y equipos, desactivalos.</td></tr>
+  <tr><td>Cargué un pago por error.</td><td>Un administrador puede anularlo desde la ficha de la orden.</td></tr>
+  <tr><td>Me equivoqué en el DNI de un cliente.</td><td>El DNI no se puede modificar. Consultá con un administrador.</td></tr>
+  <tr><td>Me bloqueó el ingreso.</td><td>Tras 5 intentos fallidos hay que esperar 15 minutos. Si no recordás la contraseña, pedile a un administrador que te asigne una nueva.</td></tr>
+  <tr><td>Aparece una pantalla de error.</td><td>Anotá el código que figura en la pantalla y qué estabas haciendo, y pasáselo a quien da soporte técnico.</td></tr>
+</table>
+
+</body>
+</html>

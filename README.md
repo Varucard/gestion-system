@@ -275,6 +275,32 @@ scripts/restore.sh storage/backups/db_<fecha>.sql.gz storage/backups/archivos_<f
   eventos. Cada petición tiene un id (`X-Request-Id`) que aparece en la página de error, para
   encontrarla en el registro. Nivel y días a conservar: `LOG_LEVEL` y `LOG_DIAS` en `.env`.
 
+## Manual de usuario
+
+El manual está en [`docs/Manual_de_Usuario_Servicio_Tecnico_PC.pdf`](docs/Manual_de_Usuario_Servicio_Tecnico_PC.pdf).
+La fuente es `docs/manual/manual.html`, con las capturas en `docs/manual/img/`. Si cambian
+pantallas o funciones, se edita el HTML, se rehacen las capturas afectadas (1280 px de ancho, a
+escala 1,5, con el navegador en español) y se vuelve a imprimir:
+
+```bash
+cd docs && google-chrome --headless=new --no-pdf-header-footer \
+  --print-to-pdf=Manual_de_Usuario_Servicio_Tecnico_PC.pdf manual/manual.html
+```
+
+## Datos de prueba
+
+Para probar el sistema o sacar capturas, `bin/demo.php` carga datos ficticios: técnicos,
+catálogo de servicios y repuestos con stock, clientes con sus equipos, órdenes en todos los
+estados (con pagos, deudas y presupuestos respondidos), turnos y mantenimientos por vencer.
+Solo corre sobre una base **sin clientes**, así que nunca se mezcla con datos reales.
+
+```bash
+docker compose exec public php bin/demo.php
+```
+
+Si la base no tiene usuarios, crea `admin` (administrador); en todos los casos agrega `lucia`
+(empleada). Ambos con la contraseña `demo1234`.
+
 ## Desarrollo
 
 ```bash

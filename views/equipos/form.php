@@ -65,7 +65,8 @@ $view->script('equipos.js');
         </div>
         <?= $view->partial('componentes/campo', [
           'nombre' => 'numero_serie', 'etiqueta' => 'N° de serie', 'valor' => $equipo['numero_serie'] ?? '', 'columna' => 'col-md-4', 'clase' => 'text-uppercase',
-          'atributos' => ['maxlength' => 50, 'placeholder' => 'Suele estar en la etiqueta de abajo'],
+          'atributos' => ['maxlength' => 50, 'placeholder' => 'Ej: PF2ABC12'],
+          'ayuda' => 'Suele estar en una etiqueta debajo del equipo o en la caja.',
         ]) ?>
       </div>
 
