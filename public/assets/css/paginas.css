@@ -1,0 +1,104 @@
+/* Lo que es propio de una sola pantalla. */
+
+/* --- Listado de órdenes: columnas compactas --- */
+.col-achicada {
+  font-size: 0.95rem;
+  line-height: 1.2;
+  vertical-align: middle;
+}
+
+th.col-cliente,
+td.col-cliente,
+th.col-equipo,
+td.col-equipo {
+  font-size: 0.95rem;
+  line-height: 1.2;
+  max-width: 100px;
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+th.col-cliente, td.col-cliente   { width: 180px; }
+th.col-equipo, td.col-equipo { width: 200px; }
+
+@media (max-width: 1200px) {
+  th.col-cliente, td.col-cliente   { max-width: 150px; width: 150px; }
+  th.col-equipo, td.col-equipo { max-width: 170px; width: 170px; }
+}
+
+td.col-acciones {
+  white-space: nowrap;
+}
+
+td.col-acciones .btn {
+  margin-right: 4px;
+}
+
+/* --- Ficha de cliente --- */
+.foto-cliente {
+  width: 160px;
+  height: 160px;
+  object-fit: cover;
+}
+
+.foto-cliente-vacia {
+  font-size: 3.5rem;
+}
+
+/* --- Galería de equipo --- */
+.galeria-imagen {
+  height: 160px;
+  object-fit: cover;
+}
+
+/* --- Agenda semanal --- */
+.agenda-celda {
+  min-width: 120px;
+}
+
+/* La columna de la hora queda fija al desplazar la semana hacia los costados. */
+.agenda-semanal th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background-color: var(--app-superficie-hundida);
+}
+
+/* --- Portal "Seguí tu equipo" --- */
+.seguimiento-pasos {
+  display: flex;
+  gap: .25rem;
+}
+
+.seguimiento-pasos span {
+  flex: 1;
+  text-align: center;
+  font-size: .8rem;
+  padding: .3rem .2rem;
+  border-radius: .25rem;
+  background: var(--bs-secondary-bg);
+  color: var(--bs-secondary-color);
+}
+
+.seguimiento-pasos span.hecho {
+  background: var(--app-exito);
+  color: #fff;
+}
+
+/* --- Pantallas angostas (login, portal) --- */
+.pagina-acceso {
+  margin-top: 8vh;
+}
+
+/* --- Listado de turnos: el select de estado va relleno con el tono suave --- */
+.estado-turno-select.estado-pendiente  { --fondo: var(--bs-warning-bg-subtle);   --texto: var(--bs-warning-text-emphasis); }
+.estado-turno-select.estado-confirmado { --fondo: var(--bs-primary-bg-subtle);   --texto: var(--bs-primary-text-emphasis); }
+.estado-turno-select.estado-realizado  { --fondo: var(--bs-success-bg-subtle);   --texto: var(--bs-success-text-emphasis); }
+.estado-turno-select.estado-cancelado  { --fondo: var(--bs-danger-bg-subtle);    --texto: var(--bs-danger-text-emphasis); --estado: var(--app-peligro); }
+.estado-turno-select.estado-no_asistio { --fondo: var(--bs-secondary-bg-subtle); --texto: var(--bs-secondary-text-emphasis); }
+
+.estado-turno-select,
+[data-bs-theme="dark"] .estado-turno-select {
+  background-color: var(--fondo);
+  color: var(--texto);
+}

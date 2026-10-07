@@ -1,0 +1,41 @@
+{
+  "name": "varucard/gestion-system",
+  "description": "Sistema de gestión para servicio técnico de PC: clientes, equipos, órdenes, presupuestos y turnos.",
+  "type": "project",
+  "license": "proprietary",
+  "require": {
+    "php": ">=8.2",
+    "ext-mbstring": "*",
+    "ext-pdo": "*",
+    "ext-pdo_mysql": "*",
+    "dompdf/dompdf": "^3.1",
+    "symfony/mailer": "^7.3"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^11.5"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\": "app/"
+    },
+    "files": [
+      "app/helpers.php"
+    ]
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "test": "phpunit",
+    "migrate": "php bin/migrate.php",
+    "lint": "find app bin config public views tests -name '*.php' -print0 | xargs -0 -n1 php -l"
+  },
+  "config": {
+    "sort-packages": true,
+    "platform": {
+      "php": "8.2.0"
+    }
+  }
+}

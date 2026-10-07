@@ -1,0 +1,22 @@
+# Entorno
+.env
+
+# Dependencias
+/vendor/
+
+# Datos generados en ejecución
+/storage/config/*
+/storage/logs/*
+/storage/uploads/
+/storage/backups/
+!/storage/**/.gitkeep
+
+# Herramientas
+.vscode/*
+!.vscode/launch.json
+.phpunit.cache/
+.idea/
+/backups/
+
+# Notas locales (pendientes con datos sensibles del servidor)
+*.local.md

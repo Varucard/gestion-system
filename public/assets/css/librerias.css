@@ -1,0 +1,121 @@
+/*
+ * Ajustes de DataTables y Tom Select al tema. Las dos traen su integración con
+ * Bootstrap 5, así que acá solo va lo que el diseño propio cambia.
+ */
+
+/* === Tablas === */
+.table {
+  --bs-table-bg: var(--app-superficie);
+  --bs-table-color: var(--app-texto);
+  --bs-table-border-color: var(--app-borde);
+  --bs-table-striped-bg: var(--app-fila-alterna);
+  --bs-table-striped-color: var(--app-texto);
+}
+
+.table > thead th {
+  background-color: var(--app-superficie-hundida);
+}
+
+/* === DataTables === */
+div.dt-container {
+  border: 1px solid var(--app-borde);
+  border-radius: var(--app-radio);
+  padding: 10px;
+  background-color: var(--app-superficie);
+  transition: border-color var(--app-transicion), background-color var(--app-transicion);
+}
+
+/* Responsive: el detalle de las columnas plegadas en pantallas chicas. */
+table.dataTable > tbody > tr.child ul.dtr-details > li {
+  border-bottom-color: var(--app-borde);
+}
+
+/* === Tom Select (buscador en los desplegables) === */
+.ts-wrapper .ts-control,
+.ts-wrapper.single.input-active .ts-control {
+  background-color: var(--app-control-fondo);
+  border-color: var(--app-borde-control);
+}
+
+.ts-wrapper.disabled .ts-control {
+  background-color: var(--app-superficie-hundida);
+}
+
+.ts-dropdown {
+  background-color: var(--app-superficie);
+  color: var(--app-texto);
+  border-color: var(--app-borde-control);
+}
+
+.ts-dropdown .active {
+  background-color: var(--app-primario);
+  color: #fff;
+}
+
+.ts-wrapper.multi .ts-control > div {
+  background-color: var(--app-superficie-hundida);
+  border: 1px solid var(--app-borde-control);
+  color: var(--app-texto);
+}
+
+/* DataTables 2 alinea a la derecha las columnas que detecta numéricas (DNI, totales);
+   en este sistema siempre fueron a la izquierda. */
+table.dataTable th.dt-type-numeric,
+table.dataTable td.dt-type-numeric,
+table.dataTable th.dt-type-date,
+table.dataTable td.dt-type-date {
+  text-align: left;
+}
+
+table.dataTable th.dt-type-numeric div.dt-column-header,
+table.dataTable th.dt-type-date div.dt-column-header {
+  flex-direction: row;
+}
+
+/*
+ * Celular: la tabla usa todo el ancho. Se sacan el recuadro y el relleno del contenedor
+ * de DataTables (ya está dentro de una tarjeta), se oculta "Mostrar N registros" y el
+ * buscador ocupa el renglón entero.
+ */
+@media (max-width: 767.98px) {
+  div.dt-container {
+    border: 0;
+    padding: 0;
+    background: none;
+  }
+
+  /* Las filas de controles usan la grilla de Bootstrap: sin relleno alrededor, sus
+     márgenes negativos sacarían la tabla por los costados. */
+  div.dt-container > .row {
+    --bs-gutter-x: 0;
+  }
+
+  div.dt-container .dt-length {
+    display: none;
+  }
+
+  div.dt-container .dt-search {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  div.dt-container .dt-search input {
+    flex: 1;
+    margin-left: 0;
+  }
+
+  div.dt-container .dt-info {
+    font-size: 0.85rem;
+  }
+
+  .table {
+    font-size: 0.9rem;
+  }
+
+  .table .btn-accion {
+    min-width: 32px;
+    margin-bottom: 2px;
+    --bs-btn-padding-x: 0.4rem;
+  }
+}

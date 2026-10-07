@@ -1,0 +1,32 @@
+/*
+ * Punto de entrada de los estilos.
+ *
+ * Todo va en capas (@layer): el orden de abajo decide quién gana, sin importar la
+ * especificidad de los selectores. Por eso no hace falta !important para pisar a
+ * Bootstrap o a las librerías: cualquier regla de "componentes" le gana a "vendor".
+ *
+ *   vendor       Bootstrap, Bootstrap Icons, DataTables y Tom Select, tal cual vienen.
+ *   tokens       Colores, radios y sombras. El ÚNICO lugar con valores de color.
+ *   base         Elementos sueltos (body, tipografía).
+ *   componentes  Piezas propias: encabezado, menú, tarjetas, botones, estados.
+ *   librerias    Ajustes de DataTables y Tom Select al tema.
+ *   paginas      Lo que es propio de una sola pantalla.
+ *   utilidades   Clases chicas de una sola propiedad (anchos máximos, etc.).
+ *
+ * Modo oscuro: lo maneja Bootstrap con data-bs-theme="dark" en <html>. Los tokens
+ * tienen su versión oscura en tokens.css; el resto del CSS no repite reglas.
+ */
+@layer vendor, tokens, base, componentes, librerias, paginas, utilidades;
+
+@import url("../vendor/bootstrap.min.css") layer(vendor);
+@import url("../vendor/dataTables.bootstrap5.min.css") layer(vendor);
+@import url("../vendor/responsive.bootstrap5.min.css") layer(vendor);
+@import url("../vendor/tom-select.bootstrap5.min.css") layer(vendor);
+@import url("../vendor/bootstrap-icons/bootstrap-icons.min.css") layer(vendor);
+
+@import url("tokens.css") layer(tokens);
+@import url("base.css") layer(base);
+@import url("componentes.css") layer(componentes);
+@import url("librerias.css") layer(librerias);
+@import url("paginas.css") layer(paginas);
+@import url("utilidades.css") layer(utilidades);

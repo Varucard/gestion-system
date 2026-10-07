@@ -1,0 +1,146 @@
+/*
+ * Tokens de diseño: el único archivo con valores de color.
+ *
+ * Para cambiar un color, se cambia acá y se actualiza en toda la aplicación.
+ * Cada token tiene su valor claro (:root) y, si cambia, su valor oscuro.
+ * Los "-rgb" existen porque Bootstrap arma sus fondos con rgba(var(--bs-x-rgb)).
+ *
+ * Contraste: cada color de fondo tiene su "--…-texto" (o "--app-sobre-…") elegido para
+ * llegar a 4.5:1, el mínimo legible. Si se cambia un fondo, revisar también su texto.
+ */
+:root {
+  /* Superficies y texto */
+  --app-fondo: #f8f9fa;
+  --app-superficie: #ffffff;
+  --app-superficie-hundida: #f8f9fa;     /* encabezados de tarjeta, cabeceras de tabla */
+  --app-superficie-hundida-rgb: 248, 249, 250;
+  --app-texto: #212529;
+  --app-texto-suave: #636a71;            /* el gris de Bootstrap (#6c757d) no llega a 4.5:1 sobre fondo gris */
+  --app-borde: #dee2e6;
+  --app-borde-control: #ced4da;
+  --app-control-fondo: #ffffff;          /* campos de formulario */
+  --app-fila-alterna: rgba(0, 0, 0, 0.05);
+
+  /* Sombras y formas */
+  --app-sombra: rgba(0, 0, 0, 0.1);
+  --app-sombra-hover: rgba(0, 0, 0, 0.15);
+  --app-radio: 6px;
+  --app-fuente: Arial, sans-serif;
+  --app-transicion: 0.3s ease;
+
+  /* Colores de acción (botones, badges) */
+  --app-primario: #0d6efd;
+  --app-exito: #198754;
+  --app-exito-rgb: 25, 135, 84;
+  --app-info: #0dcaf0;
+  --app-aviso: #ffc107;
+  --app-peligro: #dc3545;
+  --app-neutro: #6c757d;
+  --app-sobre-info: #000000;
+  --app-sobre-aviso: #000000;
+  --app-texto-exito-rgb: 20, 108, 67;     /* text-success: un punto más oscuro que el verde de fondo */
+  --app-texto-peligro-rgb: 176, 42, 55;   /* text-danger */
+
+  /* Texto de los botones de contorno (outline-*) */
+  --app-contorno-primario: #0a58ca;      /* un tono más oscuro: también se leen sobre las filas grises */
+  --app-contorno-exito: #146c43;
+  --app-contorno-peligro: #b02a37;
+  --app-contorno-aviso: #664d03;
+
+  /* Encabezado de cada sección (el color de la barra de arriba) */
+  --seccion-fondo: #0d6efd;
+  --seccion-texto: #ffffff;
+
+  /* Estados de órdenes y turnos */
+  --estado-pendiente: #ffc107;
+  --estado-en-proceso: #0dcaf0;
+  --estado-finalizado: #198754;
+  --estado-cancelado: #6c757d;
+  --estado-confirmado: #0dcaf0;
+  --estado-no-asistio: #6c757d;
+  --estado-texto-claro: #ffffff;          /* sobre los estados oscuros */
+  --estado-texto-oscuro: #212529;         /* sobre amarillo y celeste */
+
+  /* Celular */
+  --app-barra-inferior: 64px;
+
+  color-scheme: light;
+}
+
+[data-bs-theme="dark"] {
+  --app-fondo: #111827;
+  --app-superficie: #1f2933;
+  --app-superficie-hundida: #111827;
+  --app-superficie-hundida-rgb: 17, 24, 39;
+  --app-texto: #e5e7eb;
+  --app-texto-suave: #9ca3af;
+  --app-borde: #374151;
+  --app-borde-control: #4b5563;
+  --app-control-fondo: #111827;
+  --app-fila-alterna: rgba(255, 255, 255, 0.04);
+
+  --app-sombra: rgba(0, 0, 0, 0.7);
+  --app-sombra-hover: rgba(0, 0, 0, 0.9);
+
+  --app-primario: #2563eb;
+  --app-exito: #065f46;
+  --app-exito-rgb: 6, 95, 70;
+  --app-info: #0ea5e9;
+  --app-aviso: #d97706;
+  --app-peligro: #dc2626;
+  --app-sobre-info: #111827;
+  --app-sobre-aviso: #111827;
+  --app-texto-exito-rgb: 117, 183, 152;   /* el verde y el rojo de siempre no se leen sobre fondo oscuro */
+  --app-texto-peligro-rgb: 234, 134, 143;
+
+  --app-contorno-primario: #6ea8fe;
+  --app-contorno-exito: #75b798;
+  --app-contorno-peligro: #ea868f;
+  --app-contorno-aviso: #ffda6a;
+
+  --estado-pendiente: #d97706;
+  --estado-en-proceso: #0ea5e9;
+  --estado-finalizado: #065f46;
+  --estado-cancelado: #4b5563;
+  --estado-confirmado: #0ea5e9;
+  --estado-no-asistio: #4b5563;
+  --estado-texto-oscuro: #111827;
+
+  color-scheme: dark;
+}
+
+/*
+ * Bootstrap toma sus variables de los tokens: así todos sus componentes siguen el tema.
+ * Su "body-bg" es el fondo de los componentes (listas, menús, modales), no el de la
+ * página: por eso apunta a la superficie. El fondo de la página lo pone base.css.
+ */
+:root,
+[data-bs-theme="light"],
+[data-bs-theme="dark"] {
+  --bs-body-font-family: var(--app-fuente);
+  --bs-body-bg: var(--app-superficie);
+  --bs-body-color: var(--app-texto);
+  --bs-emphasis-color: var(--app-texto);
+  --bs-secondary-color: var(--app-texto-suave);
+  --bs-border-color: var(--app-borde);
+  --bs-tertiary-bg: var(--app-superficie-hundida);
+}
+
+/* Links: el azul de Bootstrap (#0d6efd) queda en 4.3:1 sobre el fondo gris; en oscuro ya se lee.
+   Ojo: <html> es :root también en modo oscuro, por eso el :not(). */
+:root:not([data-bs-theme="dark"]),
+[data-bs-theme="light"] {
+  --bs-link-color: #0a58ca;
+  --bs-link-color-rgb: 10, 88, 202;
+  --bs-link-hover-color: #084298;
+  --bs-link-hover-color-rgb: 8, 66, 152;
+}
+
+/* Colores de encabezado por sección (data-seccion en <body>). */
+[data-seccion="clientes"],
+[data-seccion="deudores"]    { --seccion-fondo: var(--app-exito); --seccion-texto: #ffffff; }
+[data-seccion="equipos"]   { --seccion-fondo: #0dcaf0; --seccion-texto: #212529; }
+[data-seccion="ordenes"],
+[data-seccion="turnos"]      { --seccion-fondo: #ffc107; --seccion-texto: #212529; }
+[data-seccion="repuestos"],
+[data-seccion="proveedores"] { --seccion-fondo: #212529; --seccion-texto: #ffffff; }

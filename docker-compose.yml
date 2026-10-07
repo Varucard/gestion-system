@@ -1,0 +1,81 @@
+services:
+  database:
+    image: mysql:8.4
+    restart: unless-stopped
+    # Solo accesible desde el propio servidor (DB_BIND=0.0.0.0 para abrirlo a la red).
+    ports:
+      - "${DB_BIND:-127.0.0.1}:${DB_HOST_PORT:-8817}:3306"
+    environment:
+      TZ: ${TZ}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    # Configuración de MySQL como parámetros (antes, mysqld.cnf): un archivo montado desde
+    # Windows queda con permisos de escritura para todos y MySQL lo ignora en silencio.
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --sql-mode=ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION
+      - --default-time-zone=-03:00
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  admin:
+    image: phpmyadmin:5
+    restart: unless-stopped
+    # Solo accesible desde el propio servidor (PMA_BIND=0.0.0.0 para abrirlo a la red).
+    ports:
+      - "${PMA_BIND:-127.0.0.1}:${PMA_PORT:-8061}:80"
+    environment:
+      PMA_HOST: database
+    depends_on:
+      - database
+
+  public:
+    build:
+      context: ./
+      args:
+        ENTORNO: ${ENTORNO:-produccion}
+    restart: unless-stopped
+    # Solo accesible desde el propio servidor, detrás del proxy con HTTPS
+    # (APP_BIND=0.0.0.0 para abrirlo a la red, p. ej. en una PC del local sin proxy).
+    ports:
+      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-8060}:80"
+    env_file: .env
+    environment:
+      XDEBUG_MODE: ${XDEBUG_MODE:-off}
+    volumes:
+      - ./:/var/www/html
+      - ./xdebug.ini:/usr/local/etc/php/conf.d/xdebug.ini:ro
+    depends_on:
+      database:
+        condition: service_healthy
+
+  # Tareas periódicas (recordatorios automáticos de turnos).
+  tareas:
+    build:
+      context: ./
+      args:
+        ENTORNO: ${ENTORNO:-produccion}
+    restart: unless-stopped
+    user: www-data
+    env_file: .env
+    environment:
+      SKIP_SETUP: "1"
+      XDEBUG_MODE: "off"
+    volumes:
+      - ./:/var/www/html
+    depends_on:
+      - public
+    command: >
+      sh -c 'until [ -f vendor/autoload.php ]; do sleep 5; done;
+             while true; do php bin/tareas.php; sleep 900; done'
+
+volumes:
+  db_data:

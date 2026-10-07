@@ -1,0 +1,12 @@
+/* Elementos sueltos. Los colores salen de los tokens. */
+body {
+  background-color: var(--app-fondo);
+  color: var(--app-texto);
+  margin: 0;
+  padding: 0;
+  transition: background-color var(--app-transicion), color var(--app-transicion);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}

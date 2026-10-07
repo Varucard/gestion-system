@@ -1,0 +1,458 @@
+/*
+ * Componentes propios. Cada bloque es una pieza que se usa en varias pantallas;
+ * los colores vienen de tokens.css y el modo oscuro sale solo.
+ */
+
+/* === Marco de la aplicación (la tarjeta grande que envuelve todo) === */
+.app-marco {
+  margin-top: 30px;
+  padding: 0 15px;
+}
+
+/* === Encabezado de sección === */
+.app-encabezado {
+  background-color: var(--seccion-fondo);
+  color: var(--seccion-texto);
+}
+
+.app-encabezado h1 {
+  font-size: clamp(1.4rem, 4vw, 2.5rem);
+}
+
+/* Botones del encabezado: se adaptan al color de la sección (claro u oscuro). */
+.btn-encabezado {
+  --bs-btn-color: var(--seccion-texto);
+  --bs-btn-border-color: var(--seccion-texto);
+  --bs-btn-hover-color: var(--seccion-fondo);
+  --bs-btn-hover-bg: var(--seccion-texto);
+  --bs-btn-hover-border-color: var(--seccion-texto);
+  --bs-btn-active-color: var(--seccion-fondo);
+  --bs-btn-active-bg: var(--seccion-texto);
+  --bs-btn-active-border-color: var(--seccion-texto);
+}
+
+/* === Tarjetas === */
+.card {
+  --bs-card-bg: var(--app-superficie);
+  --bs-card-color: var(--app-texto);
+  --bs-card-border-color: var(--app-borde);
+  --bs-card-border-radius: var(--app-radio);
+  --bs-card-inner-border-radius: var(--app-radio);
+  --bs-card-cap-bg: var(--app-superficie-hundida);
+  --bs-card-cap-color: var(--app-texto);
+  box-shadow: 0 6px 16px var(--app-sombra);
+  margin-bottom: 20px;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color var(--app-transicion), color var(--app-transicion), border-color var(--app-transicion);
+}
+
+/*
+ * Solo "flotan" las tarjetas que se pueden clickear (un <a class="card"> o .tarjeta-clic),
+ * y solo donde hay mouse: en el celular el salto molesta al tocar.
+ */
+@media (hover: hover) {
+  a.card:hover,
+  .tarjeta-clic:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px var(--app-sombra-hover);
+  }
+}
+
+/* === Íconos (Bootstrap Icons) === */
+.bi {
+  line-height: 1;
+  vertical-align: -0.125em;
+}
+
+/* === Importes: "$ 1.234,00" nunca se parte y las cifras quedan alineadas === */
+.importe {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* === Campos de formulario === */
+.form-control,
+.form-select {
+  background-color: var(--app-control-fondo);
+  border-color: var(--app-borde-control);
+}
+
+.form-control:disabled,
+.form-control[readonly],
+.form-select:disabled {
+  background-color: var(--app-superficie-hundida);
+}
+
+/* === Botones === */
+.btn-primary {
+  --bs-btn-bg: var(--app-primario);
+  --bs-btn-border-color: var(--app-primario);
+  --bs-btn-color: #fff;
+}
+
+.btn-success {
+  --bs-btn-bg: var(--app-exito);
+  --bs-btn-border-color: var(--app-exito);
+  --bs-btn-color: #fff;
+}
+
+.btn-info {
+  --bs-btn-bg: var(--app-info);
+  --bs-btn-border-color: var(--app-info);
+  --bs-btn-color: var(--app-sobre-info);
+}
+
+.btn-warning {
+  --bs-btn-bg: var(--app-aviso);
+  --bs-btn-border-color: var(--app-aviso);
+  --bs-btn-color: var(--app-sobre-aviso);
+}
+
+.btn-danger {
+  --bs-btn-bg: var(--app-peligro);
+  --bs-btn-border-color: var(--app-peligro);
+}
+
+.btn-outline-secondary {
+  --bs-btn-color: var(--app-texto);
+  --bs-btn-border-color: var(--app-borde);
+  --bs-btn-hover-color: var(--app-fondo);
+  --bs-btn-hover-bg: var(--app-texto);
+  --bs-btn-hover-border-color: var(--app-texto);
+  --bs-btn-active-color: var(--app-fondo);
+  --bs-btn-active-bg: var(--app-texto);
+  --bs-btn-active-border-color: var(--app-texto);
+  --bs-btn-disabled-color: var(--app-texto-suave);
+  --bs-btn-disabled-border-color: var(--app-borde);
+}
+
+/* Botón de la acción principal de una pantalla: toma el color de la sección. */
+.btn-seccion {
+  --bs-btn-bg: var(--seccion-fondo);
+  --bs-btn-border-color: var(--seccion-fondo);
+  --bs-btn-color: var(--seccion-texto);
+  --bs-btn-hover-bg: color-mix(in srgb, var(--seccion-fondo) 85%, #000);
+  --bs-btn-hover-border-color: color-mix(in srgb, var(--seccion-fondo) 85%, #000);
+  --bs-btn-hover-color: var(--seccion-texto);
+  --bs-btn-active-bg: color-mix(in srgb, var(--seccion-fondo) 75%, #000);
+  --bs-btn-active-border-color: color-mix(in srgb, var(--seccion-fondo) 75%, #000);
+  --bs-btn-active-color: var(--seccion-texto);
+}
+
+/*
+ * Botones de acción (boton_accion() y partials/delete_button). Dentro de las tablas y en
+ * el celular muestran solo el ícono, para que la columna de acciones no se coma la tabla:
+ * el texto sigue en el title (al pasar el mouse) y para lectores de pantalla.
+ */
+.table .btn-accion .btn-texto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.table .btn-accion {
+  min-width: 34px;
+}
+
+@media (max-width: 767.98px) {
+  .btn-accion .btn-texto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .btn-accion {
+    min-width: 36px;
+  }
+}
+
+/* Botones de contorno: el texto toma un tono que se lee en claro y en oscuro. */
+.btn-outline-primary { --bs-btn-color: var(--app-contorno-primario); --bs-btn-border-color: var(--app-contorno-primario); }
+.btn-outline-success { --bs-btn-color: var(--app-contorno-exito);    --bs-btn-border-color: var(--app-contorno-exito); }
+.btn-outline-danger  { --bs-btn-color: var(--app-contorno-peligro);  --bs-btn-border-color: var(--app-contorno-peligro); }
+.btn-outline-warning { --bs-btn-color: var(--app-contorno-aviso);    --bs-btn-border-color: var(--app-contorno-aviso); }
+
+/* Grupo de acciones de una fila: en un renglón en la PC; en el celular, los que no entran bajan. */
+.acciones-fila {
+  white-space: nowrap;
+}
+
+@media (max-width: 767.98px) {
+  .acciones-fila {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    white-space: normal;
+  }
+}
+
+/* El verde de fondos y badges sigue al token (más profundo en modo oscuro). */
+.bg-success {
+  --bs-success-rgb: var(--app-exito-rgb);
+}
+
+/* Badges sobre amarillo, celeste o gris claro: el blanco no se lee, va texto oscuro. */
+.badge.bg-warning,
+.badge.bg-info,
+.badge.bg-light {
+  --bs-badge-color: #212529;
+}
+
+/* Textos en verde y rojo: en modo oscuro pasan a un tono más claro para que se lean. */
+.text-success {
+  --bs-success-rgb: var(--app-texto-exito-rgb);
+}
+
+.text-danger {
+  --bs-danger-rgb: var(--app-texto-peligro-rgb);
+}
+
+/* === Menú principal (computadora y tablet) === */
+.menu-principal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.menu-principal .dropdown {
+  flex: 1 1 140px;
+}
+
+.dropdown-menu {
+  --bs-dropdown-bg: var(--app-superficie);
+  --bs-dropdown-border-color: var(--bs-border-color-translucent);
+  --bs-dropdown-link-color: var(--app-texto);
+  --bs-dropdown-link-hover-bg: var(--app-superficie-hundida);
+  --bs-dropdown-link-hover-color: var(--app-texto);
+  box-shadow: 0 2px 8px var(--app-sombra);
+}
+
+.dropdown-item {
+  font-size: 14px;
+  padding: 8px 12px;
+}
+
+/* En computadoras el submenú también se abre al pasar el mouse. */
+@media (hover: hover) and (min-width: 992px) {
+  .menu-principal .dropdown:hover > .dropdown-menu {
+    display: block;
+    top: 100%;
+    left: 0;
+    margin-top: 0;
+  }
+}
+
+/* === Estados (órdenes y turnos): un solo lugar para sus colores === */
+.estado-pendiente   { --estado: var(--estado-pendiente);   --estado-texto: var(--estado-texto-oscuro); }
+.estado-en_proceso  { --estado: var(--estado-en-proceso);  --estado-texto: var(--estado-texto-oscuro); }
+.estado-finalizado  { --estado: var(--estado-finalizado);  --estado-texto: var(--estado-texto-claro); }
+.estado-cancelado   { --estado: var(--estado-cancelado);   --estado-texto: var(--estado-texto-claro); }
+.estado-confirmado  { --estado: var(--estado-confirmado);  --estado-texto: var(--estado-texto-oscuro); }
+.estado-realizado   { --estado: var(--estado-finalizado);  --estado-texto: var(--estado-texto-claro); }
+.estado-no_asistio  { --estado: var(--estado-no-asistio);  --estado-texto: var(--estado-texto-claro); }
+
+/* Badge de estado (vista componentes/estado). En un turno, confirmado es verde y realizado azul. */
+.badge-estado {
+  background-color: var(--estado);
+  color: var(--estado-texto);
+}
+
+.badge-estado.estado-confirmado { --estado: var(--app-exito);    --estado-texto: #fff; }
+.badge-estado.estado-realizado  { --estado: var(--app-primario); --estado-texto: #fff; }
+
+/* Select de estado en los listados: en claro pinta el borde, en oscuro el fondo. */
+.select-estado {
+  font-size: 0.8rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  border-width: 2px;
+  border-color: var(--estado, var(--app-borde-control));
+  font-weight: 500;
+  min-width: 130px;
+}
+
+[data-bs-theme="dark"] .select-estado {
+  background-color: var(--estado);
+  color: var(--estado-texto);
+}
+
+.select-estado option {
+  background-color: var(--app-superficie);
+  color: var(--app-texto);
+}
+
+/* === Navegación en el celular === */
+.barra-inferior {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 1030;
+  display: flex;
+  height: calc(var(--app-barra-inferior) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background-color: var(--app-superficie);
+  border-top: 1px solid var(--app-borde);
+  box-shadow: 0 -2px 8px var(--app-sombra);
+}
+
+.barra-inferior a,
+.barra-inferior button {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 0;
+  background: none;
+  color: var(--app-texto-suave);
+  font-size: 0.72rem;
+  text-decoration: none;
+}
+
+.barra-inferior .icono {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.barra-inferior .activo {
+  color: var(--app-texto);
+  font-weight: 600;
+  box-shadow: inset 0 3px 0 var(--seccion-fondo);
+}
+
+.menu-movil .accordion {
+  --bs-accordion-bg: var(--app-superficie);
+  --bs-accordion-color: var(--app-texto);
+  --bs-accordion-border-color: var(--app-borde);
+  --bs-accordion-btn-color: var(--app-texto);
+  --bs-accordion-active-bg: var(--app-superficie-hundida);
+  --bs-accordion-active-color: var(--app-texto);
+  --bs-accordion-btn-focus-box-shadow: none;
+}
+
+.menu-movil .list-group-item {
+  padding: 0.85rem 1rem 0.85rem 2.5rem;   /* las páginas, un nivel adentro de su categoría */
+}
+
+@media (max-width: 767.98px) {
+  body.con-barra-inferior {
+    padding-bottom: calc(var(--app-barra-inferior) + env(safe-area-inset-bottom));
+  }
+
+  /* El marco ocupa toda la pantalla: en el celular no hay espacio para bordes. */
+  .app-marco {
+    margin-top: 0;
+    padding: 0;
+  }
+
+  /* Menos relleno anidado: página → tarjeta → tabla le dejaba a la tabla 2/3 del ancho. */
+  .card-body {
+    padding: 0.75rem;
+  }
+
+  .app-marco > .card {
+    border-radius: 0;
+    border-width: 0;
+    box-shadow: none;
+    margin-bottom: 0;
+  }
+
+  /* Encabezado compacto: una barra fina con el título a la izquierda y el logo chico. */
+  .app-encabezado {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+  }
+
+  .app-encabezado h1 {
+    font-size: 1.25rem;
+    flex-wrap: nowrap;
+  }
+
+  .app-encabezado h1 img {
+    width: 32px;
+    height: 32px;
+    order: 2;
+    margin-left: auto;
+  }
+
+  /* Pestañas: una tira que se desliza hacia los costados, en vez de varios renglones. */
+  .nav-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+
+  .nav-tabs .nav-link {
+    white-space: nowrap;
+  }
+
+  /* Botones y campos más cómodos para el dedo. */
+  .btn:not(.btn-sm),
+  .form-control:not(.form-control-sm),
+  .form-select:not(.form-select-sm) {
+    min-height: 44px;
+  }
+}
+
+/* === Avisos flotantes (toasts): abajo a la derecha; en el celular, sobre la barra === */
+.avisos {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  z-index: 1090;
+  padding: 1rem;
+  width: min(100%, 380px);
+}
+
+@media (max-width: 767.98px) {
+  .avisos {
+    left: 0;
+    width: 100%;
+    padding: 0.5rem;
+  }
+
+  .con-barra-inferior .avisos {
+    bottom: calc(var(--app-barra-inferior) + env(safe-area-inset-bottom));
+  }
+}
+
+.toast {
+  --bs-toast-bg: var(--app-superficie);
+  --bs-toast-color: var(--app-texto);
+  --bs-toast-border-color: var(--app-borde);
+  box-shadow: 0 6px 16px var(--app-sombra);
+  width: 100%;
+}
+
+.toast .bi {
+  font-size: 1.2rem;
+}
+
+/* === Estado vacío (componentes/vacio) === */
+.vacio {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--app-texto-suave);
+}
+
+.vacio .bi {
+  display: block;
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  opacity: 0.6;
+}
+
+/* === Modal de confirmación === */
+.modal {
+  --bs-modal-bg: var(--app-superficie);
+  --bs-modal-color: var(--app-texto);
+  --bs-modal-border-color: var(--app-borde);
+}
