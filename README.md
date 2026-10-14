@@ -170,6 +170,72 @@ composer migrate
 php -S localhost:8000 -t public public/index.php
 ```
 
+### En la misma VPS que Mecánica Abel
+
+En producción este sistema corre en la VPS de [Mecánica Abel](https://github.com/Varucard/abel_mecanica)
+y **usa su MySQL** en vez de levantar uno propio: MySQL es lo que más memoria ocupa (~500 MB) y
+la VPS es chica. Tiene su propia base y su propio usuario dentro de ese servidor, y sus propios
+contenedores de aplicación (`gestion` y `gestion-tareas`, ~25 MB), con la misma imagen que Abel.
+No comparte el contenedor `public` de Abel como el sitio de PC Fighter: las dos aplicaciones leen
+las mismas variables (`DB_DATABASE`, `MAIL_DSN`, `APP_URL`…) y en un mismo Apache se pisarían.
+
+Todo se maneja desde la carpeta de Abel: **el `docker-compose.yml` de este repo no se usa ahí.**
+
+```mermaid
+flowchart LR
+  AP[Apache del host] -->|taller.pcfighter.com.ar| PUB[public de Abel<br/>+ sitio de PC Fighter]
+  AP -->|gestion.pcfighter.com.ar<br/>127.0.0.1:8060| GES[gestion]
+  PUB -->|Seguí tu servicio<br/>http://gestion| GES
+  PUB --> DB[(database de Abel<br/>taller_mecanico + servicio_tecnico)]
+  GES --> DB
+  GT[gestion-tareas] --> DB
+```
+
+1. Clonar este repo **al lado** de `abel_mecanica/` (en la VPS, `/opt/abel/gestion-system`).
+2. `.env` desde `.env.example` con `chmod 600`, y estas diferencias:
+
+   | Variable | Valor |
+   | --- | --- |
+   | `DB_HOST` | `database` (el contenedor de MySQL de Abel) |
+   | `DB_DATABASE`, `DB_USERNAME` | `servicio_tecnico`, `gestion` (distintos de los de Abel) |
+   | `DB_PASSWORD` | Generada con `openssl rand -hex 24` |
+   | `APP_URL` | `https://gestion.pcfighter.com.ar` |
+   | `TRUSTED_PROXIES` | `172.16.0.0/12` |
+   | `SEGUIMIENTO_API_KEY` | Generada con `openssl rand -hex 32`; la misma va en `GESTION_API_KEY` del sitio |
+
+   `MYSQL_ROOT_PASSWORD`, los puertos y los `*_BIND` no se usan: manda el `.env` de Abel.
+3. Crear la base y el usuario en el MySQL de Abel, una sola vez (desde `abel_mecanica/`, con la
+   contraseña del paso 2):
+
+   ```bash
+   docker compose exec -T database sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot' <<'SQL'
+   CREATE DATABASE servicio_tecnico CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   CREATE USER 'gestion'@'%' IDENTIFIED BY 'LA_DB_PASSWORD_DEL_PASO_2';
+   GRANT ALL PRIVILEGES ON servicio_tecnico.* TO 'gestion'@'%';
+   SQL
+   ```
+
+4. Sumar los servicios de `docker-compose.override.ejemplo.yml` al
+   `docker-compose.override.yml` de Abel (debajo de los que ya tenga), y levantarlos:
+   `docker compose up -d --build gestion gestion-tareas`. Al arrancar, `gestion` instala las
+   dependencias y aplica las migraciones en su base, igual que con su propio compose.
+5. En el Apache del host, un vhost como el del taller para `gestion.pcfighter.com.ar` hacia
+   `127.0.0.1:8060`, y `certbot --apache`.
+6. En el sitio de PC Fighter, `GESTION_URL=http://gestion` (por la red interna de Docker, sin
+   salir del servidor) y `GESTION_API_KEY` con la clave del paso 2.
+
+**Operación**, siempre desde `abel_mecanica/`:
+
+```bash
+cd ../gestion-system && git pull && cd ../abel_mecanica
+docker compose up -d gestion gestion-tareas         # aplica migraciones y dependencias nuevas
+docker compose exec gestion php bin/usuario.php clave <usuario>
+docker compose logs gestion --tail 50
+```
+
+El phpMyAdmin de Abel ve las dos bases; con el usuario `gestion` solo se ve la de este sistema.
+Los scripts de backup, en este modo, van con `ABEL_DIR` (ver [Backups](#backups)).
+
 ## Arquitectura
 
 Patrón MVC liviano, sin framework, con separación estricta de responsabilidades:
@@ -313,6 +379,10 @@ También se puede hacer desde la consola del servidor:
 scripts/backup.sh                       # en backups/ (usa mysqldump del contenedor de la base)
 scripts/restore.sh storage/backups/db_<fecha>.sql.gz storage/backups/archivos_<fecha>.tar.gz
 ```
+
+Los dos usan siempre la base de `DB_DATABASE`. En la VPS compartida con Mecánica Abel se corren
+con `ABEL_DIR=../abel_mecanica` adelante, para que usen su MySQL; ese servidor tiene además la
+base del taller, que estos scripts no tocan.
 
 ## Logs y auditoría
 
