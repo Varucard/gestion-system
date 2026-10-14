@@ -9,26 +9,81 @@
   padding: 0 15px;
 }
 
-/* === Encabezado de sección === */
+/*
+ * La tarjeta grande que envuelve cada pantalla no recorta lo que sobresale: si no, los
+ * submenús del menú principal (p. ej., Configuración) quedaban cortados en las pantallas
+ * cortas como el Inicio. Las esquinas del encabezado se redondean por su cuenta.
+ */
+.app-marco > .card {
+  overflow: visible;
+}
+
+/*
+ * === Encabezado de sección ===
+ * Siempre en el azul noche de la marca (también en modo claro, como la cabecera del sitio de
+ * PC Fighter), teñido desde la izquierda con el color de la sección y con la línea del
+ * degradado de la marca abajo.
+ */
 .app-encabezado {
-  background-color: var(--seccion-fondo);
-  color: var(--seccion-texto);
+  --bs-card-cap-bg: transparent;
+  position: relative;
+  background:
+    radial-gradient(ellipse at 0% 120%, color-mix(in srgb, var(--seccion-fondo) 70%, transparent), transparent 60%),
+    linear-gradient(100deg, color-mix(in srgb, var(--seccion-fondo) 45%, var(--marca-noche)), var(--marca-noche-2) 65%);
+  color: var(--marca-texto-noche);
+  border-bottom: 0;
+  padding-block: 0.85rem;
+}
+
+.app-encabezado::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 3px;
+  background: var(--marca-degradado);
 }
 
 .app-encabezado h1 {
-  font-size: clamp(1.4rem, 4vw, 2.5rem);
+  font-size: clamp(1.5rem, 3.4vw, 2.2rem);
+  line-height: 1;
+  color: #ffffff;
+  text-shadow: 0 0 24px color-mix(in srgb, var(--seccion-fondo) 60%, transparent);
 }
 
-/* Botones del encabezado: se adaptan al color de la sección (claro u oscuro). */
+/* "Saltar al contenido": invisible hasta que llega el foco del teclado. */
+.saltar-al-contenido:focus {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 2000;
+  padding: 0.5rem 1rem;
+  border-radius: var(--app-radio);
+  background-color: var(--app-superficie);
+  color: var(--app-texto);
+  box-shadow: 0 2px 8px var(--app-sombra);
+}
+
+main:focus {
+  outline: none;                          /* al saltar acá, el anillo de foco no hace falta */
+}
+
+.app-logo {
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+/* Botones del encabezado: contorno suave sobre el azul noche, como "Seguí tu servicio" en el sitio. */
 .btn-encabezado {
-  --bs-btn-color: var(--seccion-texto);
-  --bs-btn-border-color: var(--seccion-texto);
-  --bs-btn-hover-color: var(--seccion-fondo);
-  --bs-btn-hover-bg: var(--seccion-texto);
-  --bs-btn-hover-border-color: var(--seccion-texto);
-  --bs-btn-active-color: var(--seccion-fondo);
-  --bs-btn-active-bg: var(--seccion-texto);
-  --bs-btn-active-border-color: var(--seccion-texto);
+  --bs-btn-color: var(--marca-texto-noche);
+  --bs-btn-border-color: var(--marca-noche-borde);
+  --bs-btn-bg: rgb(10 8 32 / 0.45);
+  --bs-btn-hover-color: #ffffff;
+  --bs-btn-hover-bg: rgb(10 8 32 / 0.7);
+  --bs-btn-hover-border-color: var(--marca-cian);
+  --bs-btn-active-color: #ffffff;
+  --bs-btn-active-bg: var(--marca-noche);
+  --bs-btn-active-border-color: var(--marca-cian);
+  letter-spacing: 0.04em;
 }
 
 /* === Tarjetas === */
@@ -40,7 +95,7 @@
   --bs-card-inner-border-radius: var(--app-radio);
   --bs-card-cap-bg: var(--app-superficie-hundida);
   --bs-card-cap-color: var(--app-texto);
-  box-shadow: 0 6px 16px var(--app-sombra);
+  box-shadow: 0 10px 30px -12px var(--app-sombra);
   margin-bottom: 20px;
   overflow: hidden;
   transition: transform 0.2s ease, box-shadow 0.2s ease, background-color var(--app-transicion), color var(--app-transicion), border-color var(--app-transicion);
@@ -53,8 +108,9 @@
 @media (hover: hover) {
   a.card:hover,
   .tarjeta-clic:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 12px var(--app-sombra-hover);
+    transform: translateY(-4px);
+    border-color: var(--marca-violeta-claro);
+    box-shadow: 0 14px 34px -14px var(--app-sombra-hover);
   }
 }
 
@@ -83,17 +139,53 @@
   background-color: var(--app-superficie-hundida);
 }
 
+.form-label {
+  font-weight: 500;
+}
+
 /* === Botones === */
+
+/* Botones y campos un poco más altos que los de Bootstrap: más fáciles de apuntar. */
+.btn:not(.btn-sm):not(.btn-link),
+.form-control:not(.form-control-sm):not(textarea),
+.form-select:not(.form-select-sm) {
+  min-height: 42px;
+}
+/* El botón principal es el de la marca: degradado violeta → magenta → azul con su resplandor. */
 .btn-primary {
   --bs-btn-bg: var(--app-primario);
-  --bs-btn-border-color: var(--app-primario);
-  --bs-btn-color: #fff;
+  --bs-btn-border-color: transparent;
+  --bs-btn-color: var(--app-sobre-color);
+  --bs-btn-hover-bg: var(--app-primario);
+  --bs-btn-hover-border-color: transparent;
+  --bs-btn-hover-color: var(--app-sobre-color);
+  --bs-btn-active-bg: var(--marca-violeta);
+  --bs-btn-active-border-color: transparent;
+  --bs-btn-active-color: var(--app-sobre-color);
+  background-image: var(--marca-degradado);
+  box-shadow: 0 8px 24px -10px var(--app-brillo);
+}
+
+.btn-primary,
+.btn-seccion {
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  transition: transform 0.2s, box-shadow 0.2s, filter 0.2s;
+}
+
+@media (hover: hover) {
+  .btn-primary:hover,
+  .btn-seccion:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.08);
+    box-shadow: 0 12px 28px -10px var(--app-brillo);
+  }
 }
 
 .btn-success {
   --bs-btn-bg: var(--app-exito);
   --bs-btn-border-color: var(--app-exito);
-  --bs-btn-color: #fff;
+  --bs-btn-color: var(--app-sobre-color);
 }
 
 .btn-info {
@@ -126,16 +218,19 @@
   --bs-btn-disabled-border-color: var(--app-borde);
 }
 
-/* Botón de la acción principal de una pantalla: toma el color de la sección. */
+/* Botón de la acción principal de una pantalla: el color de la sección, corriéndose al magenta
+   de la marca (el mismo gesto que el degradado del sitio). */
 .btn-seccion {
+  background-image: linear-gradient(100deg, var(--seccion-fondo), color-mix(in srgb, var(--seccion-fondo) 60%, var(--marca-magenta)));
+  box-shadow: 0 8px 22px -12px var(--seccion-fondo);
   --bs-btn-bg: var(--seccion-fondo);
-  --bs-btn-border-color: var(--seccion-fondo);
+  --bs-btn-border-color: transparent;
   --bs-btn-color: var(--seccion-texto);
-  --bs-btn-hover-bg: color-mix(in srgb, var(--seccion-fondo) 85%, #000);
-  --bs-btn-hover-border-color: color-mix(in srgb, var(--seccion-fondo) 85%, #000);
+  --bs-btn-hover-bg: color-mix(in srgb, var(--seccion-fondo) 85%, var(--app-oscurecer));
+  --bs-btn-hover-border-color: color-mix(in srgb, var(--seccion-fondo) 85%, var(--app-oscurecer));
   --bs-btn-hover-color: var(--seccion-texto);
-  --bs-btn-active-bg: color-mix(in srgb, var(--seccion-fondo) 75%, #000);
-  --bs-btn-active-border-color: color-mix(in srgb, var(--seccion-fondo) 75%, #000);
+  --bs-btn-active-bg: color-mix(in srgb, var(--seccion-fondo) 75%, var(--app-oscurecer));
+  --bs-btn-active-border-color: color-mix(in srgb, var(--seccion-fondo) 75%, var(--app-oscurecer));
   --bs-btn-active-color: var(--seccion-texto);
 }
 
@@ -157,7 +252,18 @@
   min-width: 34px;
 }
 
+/* Lo que borra queda separado del resto: al lado del lápiz se tocaba sin querer. */
+.acciones-fila .btn-outline-danger {
+  margin-left: 0.5rem;
+}
+
 @media (max-width: 767.98px) {
+  /* En el celular, botones de acción más grandes para el dedo. */
+  .btn.btn-accion {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
   .btn-accion .btn-texto {
     position: absolute;
     width: 1px;
@@ -172,11 +278,40 @@
   }
 }
 
+/*
+ * Botones de acción de fila: relleno suave como los del menú (tokens --accion-*). El color
+ * sigue diciendo qué hace cada uno: gris ver, azul editar, amarillo pausar, verde activar,
+ * rojo eliminar. Va antes de las reglas de contorno de abajo para que estas no lo pisen.
+ */
+.btn-accion {
+  --accion-fondo: var(--accion-ver);
+  --accion-borde-color: var(--accion-ver-borde);
+  --accion-color: var(--accion-ver-texto);
+}
+
+.btn-accion.btn-outline-primary { --accion-fondo: var(--accion-editar);  --accion-borde-color: var(--accion-editar-borde);  --accion-color: var(--accion-editar-texto); }
+.btn-accion.btn-outline-warning { --accion-fondo: var(--accion-pausa);   --accion-borde-color: var(--accion-pausa-borde);   --accion-color: var(--accion-pausa-texto); }
+.btn-accion.btn-outline-success { --accion-fondo: var(--accion-exito);   --accion-borde-color: var(--accion-exito-borde);   --accion-color: var(--accion-exito-texto); }
+.btn-accion.btn-outline-danger  { --accion-fondo: var(--accion-peligro); --accion-borde-color: var(--accion-peligro-borde); --accion-color: var(--accion-peligro-texto); }
+
 /* Botones de contorno: el texto toma un tono que se lee en claro y en oscuro. */
 .btn-outline-primary { --bs-btn-color: var(--app-contorno-primario); --bs-btn-border-color: var(--app-contorno-primario); }
 .btn-outline-success { --bs-btn-color: var(--app-contorno-exito);    --bs-btn-border-color: var(--app-contorno-exito); }
 .btn-outline-danger  { --bs-btn-color: var(--app-contorno-peligro);  --bs-btn-border-color: var(--app-contorno-peligro); }
 .btn-outline-warning { --bs-btn-color: var(--app-contorno-aviso);    --bs-btn-border-color: var(--app-contorno-aviso); }
+
+/* Aplicación de los colores de .btn-accion (definidos arriba): después del contorno, para ganarle. */
+.btn.btn-accion {
+  --bs-btn-bg: var(--accion-fondo);
+  --bs-btn-border-color: var(--accion-borde-color);
+  --bs-btn-color: var(--accion-color);
+  --bs-btn-hover-bg: color-mix(in srgb, var(--accion-fondo) 80%, var(--accion-color));
+  --bs-btn-hover-border-color: var(--accion-borde-color);
+  --bs-btn-hover-color: var(--accion-color);
+  --bs-btn-active-bg: color-mix(in srgb, var(--accion-fondo) 70%, var(--accion-color));
+  --bs-btn-active-border-color: var(--accion-borde-color);
+  --bs-btn-active-color: var(--accion-color);
+}
 
 /* Grupo de acciones de una fila: en un renglón en la PC; en el celular, los que no entran bajan. */
 .acciones-fila {
@@ -201,7 +336,7 @@
 .badge.bg-warning,
 .badge.bg-info,
 .badge.bg-light {
-  --bs-badge-color: #212529;
+  --bs-badge-color: var(--app-sobre-claro);
 }
 
 /* Textos en verde y rojo: en modo oscuro pasan a un tono más claro para que se lean. */
@@ -220,9 +355,63 @@
   gap: 5px;
 }
 
-.menu-principal .dropdown {
-  flex: 1 1 140px;
+/* Botones del menú: color suave por sección (tokens --menu-*), todos con el mismo texto. */
+.btn-menu {
+  --menu-fondo: var(--app-superficie);
+  --menu-borde: var(--app-borde);
+  --bs-btn-bg: var(--menu-fondo);
+  --bs-btn-border-color: var(--menu-borde);
+  --bs-btn-color: var(--menu-texto);
+  --bs-btn-hover-bg: color-mix(in srgb, var(--menu-fondo) 85%, var(--menu-texto));
+  --bs-btn-hover-border-color: var(--menu-borde);
+  --bs-btn-hover-color: var(--menu-texto);
+  --bs-btn-active-bg: color-mix(in srgb, var(--menu-fondo) 75%, var(--menu-texto));
+  --bs-btn-active-border-color: var(--menu-borde);
+  --bs-btn-active-color: var(--menu-texto);
 }
+
+/* La sección en la que se está: subrayado magenta, como la página actual en el menú del sitio. */
+.btn-menu.activo {
+  font-weight: 700;
+  box-shadow: inset 0 -3px 0 var(--marca-magenta);
+}
+
+.btn-menu-inicio    { --menu-fondo: var(--menu-inicio);    --menu-borde: var(--menu-inicio-borde); }
+.btn-menu-ordenes   { --menu-fondo: var(--menu-ordenes);   --menu-borde: var(--menu-ordenes-borde); }
+.btn-menu-turnos    { --menu-fondo: var(--menu-turnos);    --menu-borde: var(--menu-turnos-borde); }
+.btn-menu-clientes  { --menu-fondo: var(--menu-clientes);  --menu-borde: var(--menu-clientes-borde); }
+.btn-menu-equipos { --menu-fondo: var(--menu-equipos); --menu-borde: var(--menu-equipos-borde); }
+.btn-menu-stock     { --menu-fondo: var(--menu-stock);     --menu-borde: var(--menu-stock-borde); }
+
+/* Textos del menú en un renglón: si no entran, baja la sección entera, no media palabra. */
+.menu-principal .btn {
+  white-space: nowrap;
+  font-size: 1rem;
+}
+
+/* La flecha del submenú, separada del botón con una línea del color del texto: así se ve
+   que son dos botones (ir a la sección / abrir sus opciones) en cualquier color y tema. */
+.menu-principal .dropdown-toggle-split {
+  flex: 0 0 auto;
+  padding-left: 0.6rem;
+  padding-right: 0.6rem;
+  box-shadow: inset 1px 0 0 color-mix(in srgb, currentColor 40%, transparent);
+}
+
+/* Cada sección: el botón ocupa lo que sobra y la flechita del submenú queda al costado. */
+.menu-seccion {
+  flex: 1 1 auto;
+}
+
+/* Configuración, al final y sin estirarse: es lo que menos se usa. */
+.menu-seccion-final {
+  flex: 0 0 auto;
+}
+
+.menu-seccion > a.btn {
+  flex: 1 1 auto;
+}
+
 
 .dropdown-menu {
   --bs-dropdown-bg: var(--app-superficie);
@@ -240,10 +429,10 @@
 
 /* En computadoras el submenú también se abre al pasar el mouse. */
 @media (hover: hover) and (min-width: 992px) {
-  .menu-principal .dropdown:hover > .dropdown-menu {
+  .menu-seccion:hover > .dropdown-menu {
     display: block;
     top: 100%;
-    left: 0;
+    right: 0;
     margin-top: 0;
   }
 }
@@ -252,6 +441,7 @@
 .estado-pendiente   { --estado: var(--estado-pendiente);   --estado-texto: var(--estado-texto-oscuro); }
 .estado-en_proceso  { --estado: var(--estado-en-proceso);  --estado-texto: var(--estado-texto-oscuro); }
 .estado-finalizado  { --estado: var(--estado-finalizado);  --estado-texto: var(--estado-texto-claro); }
+.estado-entregado   { --estado: var(--estado-entregado);   --estado-texto: var(--estado-texto-claro); }
 .estado-cancelado   { --estado: var(--estado-cancelado);   --estado-texto: var(--estado-texto-claro); }
 .estado-confirmado  { --estado: var(--estado-confirmado);  --estado-texto: var(--estado-texto-oscuro); }
 .estado-realizado   { --estado: var(--estado-finalizado);  --estado-texto: var(--estado-texto-claro); }
@@ -263,8 +453,8 @@
   color: var(--estado-texto);
 }
 
-.badge-estado.estado-confirmado { --estado: var(--app-exito);    --estado-texto: #fff; }
-.badge-estado.estado-realizado  { --estado: var(--app-primario); --estado-texto: #fff; }
+.badge-estado.estado-confirmado { --estado: var(--app-exito);    --estado-texto: var(--app-sobre-color); }
+.badge-estado.estado-realizado  { --estado: var(--app-primario); --estado-texto: var(--app-sobre-color); }
 
 /* Select de estado en los listados: en claro pinta el borde, en oscuro el fondo. */
 .select-estado {
@@ -274,7 +464,7 @@
   border-width: 2px;
   border-color: var(--estado, var(--app-borde-control));
   font-weight: 500;
-  min-width: 130px;
+  min-width: 10rem;                       /* "En reparación" entero, sin cortarse */
 }
 
 [data-bs-theme="dark"] .select-estado {
@@ -326,6 +516,34 @@
   box-shadow: inset 0 3px 0 var(--seccion-fondo);
 }
 
+/* "Llegó un equipo" en la barra: el botón del medio, redondo y sobresaliendo hacia arriba. */
+.barra-inferior .destacado {
+  flex: 1.4;                              /* un poco más ancho: el texto entra en un renglón */
+  color: var(--app-primario-texto);
+  font-weight: 600;
+  white-space: nowrap;
+  justify-content: flex-end;
+  padding-bottom: 0.45rem;
+}
+
+.barra-inferior .destacado .icono {
+  display: grid;
+  place-items: center;
+  width: 3.4rem;
+  height: 3.4rem;
+  margin-top: -1.6rem;
+  border-radius: 50%;
+  border: 4px solid var(--app-superficie);
+  background-color: var(--app-primario);
+  color: var(--app-sobre-color);
+  font-size: 1.5rem;
+  box-shadow: 0 -2px 8px var(--app-sombra);
+}
+
+.barra-inferior .destacado.activo {
+  box-shadow: none;
+}
+
 .menu-movil .accordion {
   --bs-accordion-bg: var(--app-superficie);
   --bs-accordion-color: var(--app-texto);
@@ -370,16 +588,17 @@
     padding-top: max(0.5rem, env(safe-area-inset-top));
   }
 
-  .app-encabezado h1 {
-    font-size: 1.25rem;
+  .app-encabezado {
     flex-wrap: nowrap;
   }
 
-  .app-encabezado h1 img {
+  .app-encabezado h1 {
+    font-size: 1.25rem;
+  }
+
+  .app-encabezado .app-logo img {
     width: 32px;
     height: 32px;
-    order: 2;
-    margin-left: auto;
   }
 
   /* Pestañas: una tira que se desliza hacia los costados, en vez de varios renglones. */
@@ -395,8 +614,8 @@
   }
 
   /* Botones y campos más cómodos para el dedo. */
-  .btn:not(.btn-sm),
-  .form-control:not(.form-control-sm),
+  .btn:not(.btn-sm):not(.btn-link),
+  .form-control:not(.form-control-sm):not(textarea),
   .form-select:not(.form-select-sm) {
     min-height: 44px;
   }
@@ -410,6 +629,11 @@
   z-index: 1090;
   padding: 1rem;
   width: min(100%, 380px);
+  pointer-events: none; /* está siempre (aunque vacío): no tapa los botones de abajo */
+}
+
+.avisos > * {
+  pointer-events: auto;
 }
 
 @media (max-width: 767.98px) {
@@ -436,6 +660,306 @@
   font-size: 1.2rem;
 }
 
+/* === Acciones rápidas del inicio: botones grandes, ícono arriba y texto abajo === */
+.accion-rapida {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 5.5rem;
+  font-family: var(--app-fuente-titulo);
+  font-size: 1.35rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.accion-rapida .bi {
+  font-size: 1.75rem;
+}
+
+@media (max-width: 575.98px) {
+  .accion-rapida {
+    font-size: 1.1rem;
+  }
+}
+
+/* === Fila "Saldo" de la orden (las table-warning/success de Bootstrap encandilaban en oscuro) === */
+.fila-saldo-pendiente > * {
+  --bs-table-bg: var(--saldo-pendiente-fondo);
+  --bs-table-color: var(--saldo-pendiente-texto);
+  color: var(--saldo-pendiente-texto);
+}
+
+.fila-saldo-cero > * {
+  --bs-table-bg: var(--saldo-cero-fondo);
+  --bs-table-color: var(--saldo-cero-texto);
+  color: var(--saldo-cero-texto);
+}
+
+/* === Filas que se tocan enteras (tr.fila-link) === */
+.fila-link {
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .fila-link:hover > td {
+    background-color: var(--app-superficie-hundida);
+  }
+}
+
+/* === Números del inicio: recuadros grandes que llevan a su listado === */
+.numero-panel {
+  container-type: inline-size;            /* el número se achica según el ancho del recuadro */
+  --numero-color: var(--accion-ver-texto);
+  --numero-fondo: var(--accion-ver);
+  border-color: var(--numero-fondo);
+  border-top: 4px solid var(--numero-borde, var(--numero-fondo));
+}
+
+.numero-panel .card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.numero-titulo {
+  color: var(--app-texto-suave);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Los números van en Saira: en Jersey Sharp el 0 se confunde con una D. */
+.numero-valor {
+  color: var(--numero-color);
+  font-size: clamp(2rem, 20cqi, 2.8rem);
+  font-weight: 700;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Los importes son más largos que un conteo: un poco más chicos, así "$ 1.250.000" entra. */
+.numero-importe {
+  font-size: clamp(1.3rem, 13cqi, 2.2rem);
+}
+
+.numero-detalle {
+  margin-top: auto;
+  color: var(--app-texto-suave);
+  font-size: 0.85rem;
+}
+
+/* Cada número con el color de su sección (los mismos tonos del menú y de las acciones). */
+.numero-turnos   { --numero-borde: var(--sec-turnos);   --numero-color: var(--app-texto); }
+.numero-ordenes  { --numero-borde: var(--sec-ordenes);  --numero-color: var(--app-texto); }
+.numero-clientes { --numero-borde: var(--sec-clientes); --numero-color: var(--accion-exito-texto); }
+.numero-peligro  { --numero-borde: var(--app-peligro);  --numero-color: var(--accion-peligro-texto); }
+.numero-stock    { --numero-borde: var(--sec-stock);    --numero-color: var(--app-texto); }
+
+/* El borde de arriba se enciende del color de su sección, como las tarjetas del sitio. */
+.numero-panel {
+  border-top-width: 3px;
+  background-image: radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--numero-borde, transparent) 18%, transparent), transparent 55%);
+}
+
+/* === Pasos de la orden (Recibido → En reparación → Listo) === */
+.pasos-orden {
+  display: flex;
+  gap: 0.25rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  counter-reset: paso;
+}
+
+.pasos-orden li {
+  flex: 1;
+  counter-increment: paso;
+  text-align: center;
+  padding: 0.5rem 0.25rem;
+  border-radius: var(--app-radio);
+  background-color: var(--app-superficie-hundida);
+  color: var(--app-texto-suave);
+  font-size: 0.9rem;
+}
+
+.pasos-orden li::before {
+  content: counter(paso) ". ";
+}
+
+.pasos-orden li.hecho {
+  background-color: var(--app-exito);
+  color: var(--app-sobre-color);
+}
+
+.pasos-orden li.hecho::before {
+  content: "✓ ";
+}
+
+.pasos-orden li.actual {
+  background-color: var(--app-primario);
+  color: var(--app-sobre-color);
+  font-weight: 600;
+}
+
+/* === Formularios en pasos ("Llegó un equipo") === */
+.paso {
+  margin-bottom: 1.5rem;
+}
+
+.paso-titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1.2rem;
+  margin-bottom: 0.9rem;
+}
+
+.paso-numero {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background-color: var(--seccion-fondo);
+  background-image: linear-gradient(135deg, var(--seccion-fondo), var(--marca-magenta));
+  box-shadow: 0 0 16px -4px var(--seccion-fondo);
+  color: var(--seccion-texto);
+  font-family: var(--app-fuente-titulo);
+  font-size: 1.1rem;
+  font-weight: 400;
+}
+
+/* === Firma del cliente en la pantalla (componentes/firma) === */
+.firma-lienzo {
+  position: relative;
+  max-width: 640px;
+  height: 200px;
+  border: 2px dashed var(--firma-borde);
+  border-radius: var(--app-radio);
+  background-color: var(--firma-papel);
+}
+
+.firma-lienzo canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none; /* el dedo dibuja: no desplaza la página */
+  cursor: crosshair;
+}
+
+.firma-guia {
+  position: absolute;
+  inset: auto 0 0.6rem;
+  text-align: center;
+  color: var(--firma-guia);
+  pointer-events: none;
+}
+
+.firma.firmado .firma-guia {
+  display: none;
+}
+
+.firma.is-invalid .firma-lienzo {
+  border-color: var(--app-peligro);
+}
+
+/* Firma ya guardada, mostrada en la orden */
+.firma-guardada {
+  max-width: 280px;
+  max-height: 110px;
+  padding: 0.25rem;
+  border: 1px solid var(--app-borde);
+  border-radius: var(--app-radio);
+  background-color: var(--firma-papel);
+}
+
+/* === Fotos del equipo (componentes/fotos y la orden) === */
+.fotos-vista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.foto-miniatura {
+  position: relative;
+  margin: 0;
+}
+
+.foto-miniatura img {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: var(--app-radio);
+  border: 1px solid var(--app-borde);
+}
+
+.foto-quitar {
+  position: absolute;
+  top: 0.15rem;
+  right: 0.15rem;
+  min-width: 2.25rem; /* para el dedo */
+  min-height: 2.25rem;
+  padding: 0;
+}
+
+/* El campo de archivo está oculto dentro del botón: el foco con teclado se marca en el botón. */
+.fotos-equipo label:focus-within {
+  outline: 3px solid var(--app-foco);
+  outline-offset: 2px;
+}
+
+/* fieldset sin marco: solo agrupa (y deshabilita en bloque lo que no hace falta enviar). */
+fieldset {
+  min-width: 0;
+}
+
+/* === Sección plegable de un formulario (<details class="mas-datos">) === */
+.mas-datos {
+  border: 1px solid var(--app-borde);
+  border-radius: var(--app-radio);
+  padding: 0.75rem 1rem;
+}
+
+.mas-datos > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* === Horarios libres al dar un turno === */
+.horarios-libres .btn {
+  min-width: 4.5rem;
+}
+
+/* === Pie de página: año, negocio, desarrollador y versión === */
+.pie {
+  padding: 0.75rem 1rem 1.25rem;
+  font-size: 0.8rem;
+  text-align: center;
+  color: var(--app-texto-suave);
+}
+
+.pie p {
+  margin: 0;
+}
+
+/* Instalada como app en el celular, el pie con la versión sobra (como en las apps nativas). */
+@media (display-mode: standalone) and (max-width: 767.98px) {
+  .pie {
+    display: none;
+  }
+}
+
+/* === Estado vacío en una línea (listas del inicio) === */
+.vacio-compacto {
+  color: var(--app-texto-suave);
+}
+
 /* === Estado vacío (componentes/vacio) === */
 .vacio {
   text-align: center;
@@ -443,16 +967,112 @@
   color: var(--app-texto-suave);
 }
 
-.vacio .bi {
+.vacio > .bi {
   display: block;
   font-size: 2.5rem;
   margin-bottom: 0.5rem;
   opacity: 0.6;
 }
 
+/* === Sugerencias del buscador (debajo del campo, por encima del contenido) === */
+.buscador-sugerencias {
+  position: absolute;
+  inset: 100% 0 auto 0;
+  z-index: 1050;
+  max-height: min(60vh, 26rem);
+  overflow-y: auto;
+  margin-top: 0.25rem;
+  box-shadow: 0 6px 16px var(--app-sombra);
+}
+
+.buscador-sugerencias .list-group-item.active {
+  --bs-list-group-active-bg: var(--app-superficie-hundida);
+  --bs-list-group-active-color: var(--app-texto);
+  --bs-list-group-active-border-color: var(--app-borde);
+  box-shadow: inset 4px 0 0 var(--app-primario);
+}
+
 /* === Modal de confirmación === */
+.modal .js-modal-mensaje {
+  white-space: pre-line;                  /* los saltos de línea del mensaje (p. ej., la lista de atajos) */
+}
+
+.pie-atajos {
+  font-size: inherit;
+  color: inherit;
+}
+
 .modal {
   --bs-modal-bg: var(--app-superficie);
   --bs-modal-color: var(--app-texto);
   --bs-modal-border-color: var(--app-borde);
+}
+
+/* "Llegó un equipo": los equipos del cliente, para elegir uno tocando la fila entera. */
+.equipos-cliente {
+  display: grid;
+  gap: 0.5rem;
+  max-width: 640px;
+}
+
+.equipo-opcion {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius-lg);
+  cursor: pointer;
+}
+
+.equipo-opcion:has(input:checked) {
+  border-color: var(--bs-primary);
+  box-shadow: inset 0 0 0 1px var(--bs-primary);
+}
+
+.equipo-opcion .form-check-input {
+  margin: 0;
+  flex: none;
+}
+
+/*
+ * === Detalles de la marca PC Fighter ===
+ * Lo que no es color (eso está en tokens.css): los encabezados de tarjeta en versalitas
+ * espaciadas como los "sobretítulos" del sitio, el resplandor violeta de los modales y los
+ * submenús, y el chip con el degradado de la marca.
+ */
+.card-header:not(.app-encabezado) {
+  letter-spacing: 0.02em;
+}
+
+.card-header:not(.app-encabezado) h4,
+.card-header:not(.app-encabezado) .h4 {
+  font-size: 1.35rem;
+}
+
+.dropdown-menu,
+.modal-content {
+  border-color: var(--app-borde);
+  box-shadow: 0 24px 60px -20px rgb(0 0 0 / 0.55), 0 0 40px -20px var(--marca-violeta-claro);
+}
+
+.modal-content {
+  --bs-modal-bg: var(--app-superficie);
+  border-radius: 16px;
+}
+
+.modal-backdrop {
+  --bs-backdrop-bg: #060414;
+  --bs-backdrop-opacity: 0.75;
+}
+
+.chip-marca {
+  display: inline-block;
+  padding: 0.15rem 0.75rem;
+  border-radius: 999px;
+  background: var(--marca-degradado);
+  color: #ffffff;
+  font-family: var(--app-fuente-titulo);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }

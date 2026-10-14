@@ -12,6 +12,9 @@
       <a class="nav-link <?= $clave === $seccion ? 'active' : '' ?>" href="<?= url("configuracion/{$clave}") ?>"><?= e($etiqueta) ?></a>
     </li>
   <?php endforeach; ?>
+  <?php // Pantallas de configuración que no son una sección del archivo de configuración. ?>
+  <li class="nav-item"><a class="nav-link" href="<?= url('mostrador') ?>">Modo mostrador</a></li>
+  <li class="nav-item"><a class="nav-link" href="<?= url('primeros-pasos') ?>">Primeros pasos</a></li>
 </ul>
 
 <div class="card border-top-0 rounded-top-0">
@@ -19,8 +22,8 @@
     <form action="<?= url("configuracion/{$seccion}") ?>" method="POST">
       <?= csrf_field() ?>
       <?= $view->partial("configuracion/_{$seccion}", ['valores' => $config[$seccion], 'config' => $config, ...$extra]) ?>
-      <div class="text-end mt-3">
-        <button type="submit" class="btn btn-seccion"><?= icono('save') ?> Guardar</button>
+      <div class="mt-3">
+        <button type="submit" class="btn btn-seccion"><?= icono('check-lg') ?> Guardar cambios</button>
       </div>
     </form>
   </div>
@@ -61,18 +64,25 @@
         <?= $view->partial('componentes/vacio', ['icono' => 'envelope', 'texto' => 'Todavía no se envió ningún aviso.']) ?>
       <?php else: ?>
         <table class="table table-sm align-middle">
-          <thead><tr><th>Fecha</th><th>Cliente</th><th>Turno</th><th>Tipo</th><th>Canal</th><th>Destino</th><th>Resultado</th></tr></thead>
+          <?php $nombres = \App\Services\NotificacionService::NOMBRES; $canales = ['email' => 'Email', 'whatsapp_manual' => 'WhatsApp']; ?>
+          <thead><tr><th>Fecha</th><th>Cliente</th><th class="d-none d-md-table-cell">Turno</th><th>Aviso</th><th>Por</th><th class="d-none d-md-table-cell">A</th><th>Resultado</th></tr></thead>
           <tbody>
             <?php foreach ($extra['registro'] as $n): ?>
+              <?php $manual = $n['canal'] === 'whatsapp_manual'; ?>
               <tr>
                 <td><?= format_date($n['created_at'], 'd/m/Y H:i') ?></td>
                 <td><?= e($n['cliente'] ?? '—') ?></td>
-                <td><?= $n['turno_fecha'] ? format_date($n['turno_fecha']) . ' ' . e(substr($n['turno_hora'], 0, 5)) : '—' ?></td>
-                <td><?= e($n['tipo']) ?></td>
-                <td><?= e($n['canal']) ?></td>
-                <td><?= e($n['destino']) ?></td>
+                <td class="d-none d-md-table-cell"><?= $n['turno_fecha'] ? format_date($n['turno_fecha']) . ' ' . e(substr($n['turno_hora'], 0, 5)) : '—' ?></td>
+                <td><?= e($nombres[$n['tipo']] ?? $n['tipo']) ?></td>
+                <td><?= e($canales[$n['canal']] ?? $n['canal']) ?></td>
+                <td class="d-none d-md-table-cell"><?= e($n['destino']) ?></td>
                 <td>
-                  <span class="badge bg-<?= $n['estado'] === 'enviado' ? 'success' : 'danger' ?>"><?= e($n['estado']) ?></span>
+                  <?php // Por WhatsApp no sabemos si se envió: se abrió la conversación con el mensaje. ?>
+                  <?php if ($manual): ?>
+                    <span class="badge text-bg-secondary">abierto</span>
+                  <?php else: ?>
+                    <span class="badge bg-<?= $n['estado'] === 'enviado' ? 'success' : 'danger' ?>"><?= $n['estado'] === 'enviado' ? 'enviado' : 'no salió' ?></span>
+                  <?php endif; ?>
                   <?php if ($n['detalle']): ?><div class="small text-muted"><?= e($n['detalle']) ?></div><?php endif; ?>
                 </td>
               </tr>

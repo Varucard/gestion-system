@@ -1,0 +1,15 @@
+{
+  "normalizar": [
+    { "entrada": "pf2 abc12", "esperado": "PF2ABC12" },
+    { "entrada": " 5CD1234XYZ ", "esperado": "5CD1234XYZ" },
+    { "entrada": "sn-123/a", "esperado": "SN-123/A" }
+  ],
+  "valida": [
+    { "entrada": "PF2ABC12", "esperado": true, "nota": "Lenovo" },
+    { "entrada": "5CD1234XYZ", "esperado": true, "nota": "HP" },
+    { "entrada": "SN-123/A.4_B", "esperado": true, "nota": "guiones, barras, puntos" },
+    { "entrada": "AB", "esperado": false, "nota": "muy corto" },
+    { "entrada": "ABC#123", "esperado": false },
+    { "entrada": "pf2abc12", "esperado": false, "nota": "sin normalizar" }
+  ]
+}

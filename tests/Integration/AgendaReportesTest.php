@@ -38,6 +38,32 @@ final class AgendaReportesTest extends IntegrationTestCase
     $this->assertFalse($agenda['celdas'][$agenda['hasta']]['09:00']['abierta'], 'Domingo cerrado');
   }
 
+  public function testHorariosLibresDeUnDia(): void
+  {
+    $semana = ['desde' => '08:00', 'hasta' => '11:00'];
+    $this->configurar('turnos', [
+      'horario' => ['1' => $semana, '2' => $semana, '3' => $semana, '4' => $semana, '5' => $semana, '6' => null, '7' => null],
+      'feriados' => [], 'cupos_por_horario' => 1, 'intervalo_minutos' => 60,
+    ]);
+    $lunes = (new DateTimeImmutable('monday next week'))->format('Y-m-d');
+    $cliente = $this->crearCliente();
+    $this->make(TurnoService::class)->guardar(['cliente_id' => $cliente, 'equipo_id' => $this->crearEquipo($cliente), 'fecha' => $lunes, 'hora' => '09:00']);
+    $agenda = $this->make(AgendaService::class);
+
+    $dia = $agenda->dia($lunes, new DateTimeImmutable('today'));
+    $this->assertTrue($dia['abierto']);
+    $this->assertSame([['hora' => '08:00', 'libres' => 1], ['hora' => '09:00', 'libres' => 0], ['hora' => '10:00', 'libres' => 1]], $dia['horarios']);
+
+    $this->assertSame(['09:00', '10:00'], array_column($agenda->dia($lunes, new DateTimeImmutable("{$lunes} 08:30"))['horarios'], 'hora'), 'Los horarios que ya pasaron no se ofrecen');
+
+    $domingo = (new DateTimeImmutable($lunes))->modify('+6 days')->format('Y-m-d');
+    $this->assertSame(['abierto' => false, 'motivo' => 'No atendemos ese día.', 'horarios' => []], $agenda->dia($domingo, new DateTimeImmutable('today')));
+    $this->assertFalse($agenda->dia('2026-02-30', new DateTimeImmutable('today'))['abierto']);
+
+    $this->configurar('turnos', ['feriados' => [$lunes]]);
+    $this->assertSame('Ese día es feriado.', $agenda->dia($lunes, new DateTimeImmutable('today'))['motivo']);
+  }
+
   public function testUnaFechaInvalidaMuestraLaSemanaActual(): void
   {
     $hoy = new DateTimeImmutable('2026-10-07');

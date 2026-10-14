@@ -10,7 +10,8 @@ use App\Exceptions\NotFoundException;
  * Router sencillo basado en patrones del tipo `/clientes/{id}/editar`.
  *
  * Parámetros: `{id}` solo dígitos (se pasa como int), `{x:slug}` letras
- * minúsculas y guion bajo, `{x:token}` 64 caracteres hexadecimales (se pasan como string).
+ * minúsculas y guion bajo, `{x:token}` 64 caracteres hexadecimales, `{x:captura}` minúsculas,
+ * dígitos y guion medio (nombres de archivo sin extensión). Los tres se pasan como string.
  *
  * Cada ruta tiene un nivel de acceso (ACCESO_*) que se valida con el guard
  * antes de ejecutar el controlador.
@@ -24,6 +25,7 @@ final class Router
   private const TIPOS = [
     'slug' => '[a-z_]+',
     'token' => '[a-f0-9]{64}',
+    'captura' => '[a-z0-9-]+',
   ];
 
   /** @var list<array{method: string, regex: string, handler: array{0: class-string, 1: string}, acceso: string, texto: list<string>}> */

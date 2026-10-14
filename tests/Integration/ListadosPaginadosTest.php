@@ -29,7 +29,9 @@ final class ListadosPaginadosTest extends IntegrationTestCase
     $repo = $this->make(OrdenRepository::class);
 
     $this->assertSame(5, $repo->paginar([])['recordsTotal']);
-    $this->assertSame(3, $repo->paginar(['estado' => 'abiertas'])['recordsTotal']);
+    $this->assertSame(4, $repo->paginar(['estado' => 'abiertas'])['recordsTotal'], 'también la lista sin retirar');
+    $this->assertSame(1, $repo->paginar(['estado' => 'sin_retirar'])['recordsTotal']);
+    $this->assertSame(0, $repo->paginar(['estado' => 'entregadas'])['recordsTotal']);
     $this->assertSame(3, $repo->paginar(['estado' => 'con_saldo'])['recordsTotal'], 'Pagada y cancelada no tienen saldo');
     $this->assertSame(1, $repo->paginar(['estado' => 'finalizado'])['recordsTotal']);
     $this->assertSame(5, $repo->paginar(['search' => ['value' => 'ab123cd pérez']])['recordsFiltered']);

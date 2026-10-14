@@ -8,6 +8,7 @@
     "ext-mbstring": "*",
     "ext-pdo": "*",
     "ext-pdo_mysql": "*",
+    "chillerlan/php-qrcode": "^5.0",
     "dompdf/dompdf": "^3.1",
     "symfony/mailer": "^7.3"
   },

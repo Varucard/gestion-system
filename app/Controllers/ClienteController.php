@@ -89,21 +89,23 @@ final class ClienteController extends Controller
 
   public function create(Request $request): void
   {
-    $this->render('clientes/form', ['title' => 'Registrar cliente', 'cliente' => null]);
+    // ?para=turno: viene de "Nuevo turno" (cliente que llama por teléfono): al guardar sigue con su equipo.
+    $this->render('clientes/form', ['title' => 'Nuevo cliente', 'cliente' => null, 'paraTurno' => $request->query('para') === 'turno']);
   }
 
   public function store(Request $request): void
   {
     $this->verifyCsrf($request);
+    $paraTurno = $request->string('para') === 'turno';
 
     try {
       $id = $this->service->crear($request->all());
     } catch (ValidationException $e) {
-      $this->backWithErrors('/clientes/crear', $e, $request);
+      $this->backWithErrors('/clientes/crear' . ($paraTurno ? '?para=turno' : ''), $e, $request);
     }
 
     $this->success('Cliente registrado correctamente.');
-    $this->redirect("/clientes/{$id}");
+    $this->redirect($paraTurno ? "/equipos/crear?cliente_id={$id}&para=turno" : "/clientes/{$id}");
   }
 
   public function edit(Request $request, int $id): void
@@ -133,7 +135,9 @@ final class ClienteController extends Controller
     $this->verifyCsrf($request);
 
     $estado = $this->service->alternarEstado($id);
-    $this->success($estado === Estado::Activo ? 'Cliente activado.' : 'Cliente desactivado.');
+    // Se hace sin preguntar y se ofrece deshacer (el mismo POST vuelve al estado anterior).
+    $mensaje = $estado === Estado::Activo ? 'Cliente activado.' : 'Cliente desactivado: ya no aparece al dar turnos ni al abrir órdenes. No se borró nada.';
+    $request->string('deshaciendo') === '1' ? $this->success($mensaje) : $this->hechoConDeshacer($mensaje, "clientes/{$id}/estado");
     $this->redirect('/clientes');
   }
 

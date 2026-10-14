@@ -49,7 +49,7 @@ table.dataTable > tbody > tr.child ul.dtr-details > li {
 
 .ts-dropdown .active {
   background-color: var(--app-primario);
-  color: #fff;
+  color: var(--app-sobre-color);
 }
 
 .ts-wrapper.multi .ts-control > div {
@@ -118,4 +118,94 @@ table.dataTable th.dt-type-date div.dt-column-header {
     margin-bottom: 2px;
     --bs-btn-padding-x: 0.4rem;
   }
+}
+
+/* === Tarjetas en el celular (tablas con data-tarjetas, ver app.js) === */
+.tabla-tarjetas thead {
+  display: none;
+}
+
+.tabla-tarjetas,
+.tabla-tarjetas tbody,
+.tabla-tarjetas tr,
+.tabla-tarjetas td {
+  display: block;
+  width: 100%;
+}
+
+.tabla-tarjetas.table-bordered > :not(caption) > * > * {
+  border-width: 0;
+}
+
+.tabla-tarjetas tbody tr {
+  margin-bottom: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--app-borde);
+  border-radius: var(--app-radio);
+  background-color: var(--app-superficie);
+  box-shadow: 0 1px 2px var(--app-sombra);
+}
+
+/* Sin el rayado de la tabla: cada tarjeta ya se separa sola. */
+.tabla-tarjetas.table-striped > tbody > tr:nth-of-type(odd) > *,
+.tabla-tarjetas.table-striped > tbody > tr > * {
+  --bs-table-bg-type: transparent;
+  --bs-table-accent-bg: transparent;
+}
+
+/* El nombre de la columna a la izquierda, chico; el contenido (aunque tenga varias líneas) a la derecha. */
+.tabla-tarjetas tbody td {
+  position: relative;
+  padding: 0.2rem 0 0.2rem 7rem;
+  background: transparent;
+  box-shadow: none; /* DataTables y Bootstrap rayan las filas con una sombra interna */
+}
+
+.tabla-tarjetas tbody td::before {
+  content: attr(data-titulo);
+  position: absolute;
+  left: 0;
+  top: 0.25rem;
+  width: 6.5rem;
+  color: var(--app-texto-suave);
+  font-size: 0.85em;
+}
+
+/* La primera celda (N° o fecha) es el título de la tarjeta; la última, sus botones. */
+.tabla-tarjetas tbody td:first-child,
+.tabla-tarjetas tbody td:last-child,
+.tabla-tarjetas tbody td.dt-empty {
+  padding-left: 0;
+}
+
+.tabla-tarjetas tbody td:first-child::before,
+.tabla-tarjetas tbody td:last-child::before,
+.tabla-tarjetas tbody td.dt-empty::before {
+  content: none;
+}
+
+.tabla-tarjetas tbody td:first-child {
+  font-size: 1.1em;
+}
+
+.tabla-tarjetas tbody td:last-child .btn {
+  min-height: 44px;
+}
+
+/* En la tarjeta hay lugar: los botones de acción llevan su texto (en la tabla son solo íconos). */
+.tabla-tarjetas .btn-accion .btn-texto {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip-path: none;
+}
+
+.tabla-tarjetas tbody td:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--app-borde);
 }

@@ -22,6 +22,7 @@ final class AuthController extends Controller
     private readonly Auth $auth,
     private readonly UsuarioService $usuarios,
     private readonly \App\Services\Auditor $auditor,
+    private readonly \App\Services\MostradorService $mostrador,
   ) {
     parent::__construct($view, $session);
   }
@@ -35,7 +36,43 @@ final class AuthController extends Controller
       $this->redirect('/');
     }
 
-    echo $this->view->render('auth/login', ['title' => 'Iniciar sesión'], 'layouts/guest');
+    // En un mostrador: los nombres para tocar y el PIN (con usuario y contraseña, si se pide).
+    $mostrador = $this->mostrador->deCookie($request->cookie(\App\Services\MostradorService::COOKIE));
+    $conPin = $mostrador !== null ? $this->mostrador->usuariosConPin() : [];
+    if ($conPin !== [] && $request->query('con_clave') !== '1') {
+      echo $this->view->render('auth/mostrador', ['title' => '¿Quién sos?', 'usuarios' => $conPin, 'mostrador' => $mostrador], 'layouts/guest');
+
+      return;
+    }
+
+    echo $this->view->render('auth/login', ['title' => 'Iniciar sesión', 'mostrador' => $conPin !== []], 'layouts/guest');
+  }
+
+  /** Entrada con PIN, solo desde un navegador habilitado como mostrador. */
+  public function loginPin(Request $request): void
+  {
+    $this->verifyCsrf($request);
+
+    $mostrador = $this->mostrador->deCookie($request->cookie(\App\Services\MostradorService::COOKIE));
+    if ($mostrador === null) {
+      $this->error('Este equipo no está habilitado como mostrador: entrá con tu usuario y contraseña.');
+      $this->redirect('/login');
+    }
+
+    try {
+      $usuario = $this->mostrador->entrar($mostrador, (int) $request->int('usuario_id'), (string) $request->input('pin', ''), Request::ip());
+    } catch (ValidationException $e) {
+      // Queda elegida la misma persona: solo tiene que volver a escribir el PIN.
+      $this->session->keepInput(['usuario_id' => (string) $request->int('usuario_id')]);
+      $this->error($e->getMessage());
+      $this->redirect('/login');
+    }
+
+    $this->auth->login($usuario, mostrador: true);
+    $this->auditor->registrar('login', 'usuario', (int) $usuario['id'], "{$usuario['usuario']} entró con PIN en \"{$mostrador['nombre']}\"");
+    // Siempre al inicio: si no, el que entra cae en la última pantalla que miraba el anterior.
+    $this->session->pullIntended('/');
+    $this->redirect('/');
   }
 
   public function login(Request $request): void
@@ -51,7 +88,8 @@ final class AuthController extends Controller
     } catch (ValidationException $e) {
       $this->session->keepInput(['usuario' => $request->string('usuario')]);
       $this->error($e->getMessage());
-      $this->redirect('/login');
+      // En un mostrador, de vuelta al formulario de contraseña (no a "¿Quién sos?").
+      $this->redirect($this->mostrador->deCookie($request->cookie(\App\Services\MostradorService::COOKIE)) !== null ? '/login?con_clave=1' : '/login');
     }
 
     $this->auth->login($usuario);
@@ -88,8 +126,8 @@ final class AuthController extends Controller
     }
 
     $this->auth->login($this->usuarios->obtener($id));
-    $this->success('Administrador creado. ¡Bienvenido!');
-    $this->redirect('/');
+    $this->success('Administrador creado. ¡Bienvenido! Seguí estos pasos para dejar el sistema listo.');
+    $this->redirect('/primeros-pasos');
   }
 
   private function soloSinUsuarios(): void

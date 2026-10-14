@@ -63,6 +63,28 @@ final class PagosTest extends IntegrationTestCase
 
     $this->make(OrdenService::class)->cambiarEstado($orden['id'], 'finalizado');
     $this->assertSame([$orden['cliente'] => 700.0], $repo->saldosPorCliente());
+    $this->assertSame($orden['id'], (int) $repo->deudores()[0]['orden_a_cobrar'], '"Cobrar" lleva a la orden impaga');
+  }
+
+  public function testLosNumerosDelInicioCoincidenConLosListados(): void
+  {
+    $orden = $this->orden(1000);
+    $this->make(OrdenService::class)->cambiarEstado($orden['id'], 'finalizado');
+    $this->pagar($orden['id'], '250');
+    $panel = $this->make(\App\Repositories\PanelRepository::class);
+    $deudores = $this->make(PagoRepository::class)->deudores();
+
+    $this->assertSame(['clientes' => count($deudores), 'total' => (float) array_sum(array_column($deudores, 'saldo'))], $panel->deuda());
+    $this->assertSame(count($this->make(\App\Repositories\RepuestoRepository::class)->bajoMinimo()), $panel->repuestosBajoMinimo());
+    $this->assertSame(count($this->make(\App\Repositories\TurnoRepository::class)->delDia(date('Y-m-d'))), $panel->turnosDelDia(date('Y-m-d')));
+  }
+
+  public function testUnPagoConPuntoDeMilesNoSeToma10(): void
+  {
+    $orden = $this->orden(20000);
+    $this->pagar($orden['id'], '10.000');
+
+    $this->assertEquals(10000.0, $this->make(PagoRepository::class)->totalPagado($orden['id']), '"10.000" son diez mil, no diez');
   }
 
   public function testNoSeBajaElTotalPorDebajoDeLoPagado(): void

@@ -240,6 +240,11 @@ $orden = function (int $equipoId, array $items, array $detalle, string $estado, 
   // Fechas en el pasado, para que el panel y los reportes tengan historia.
   $finalizada = $estado === 'finalizado' ? date('Y-m-d', strtotime('-' . max(0, $dias - 3) . ' days')) : null;
   $db->prepare('UPDATE ordenes SET created_at = ?, fecha_realizado = COALESCE(?, fecha_realizado) WHERE id = ?')->execute([$hace($dias), $finalizada, $id]);
+  // Las terminadas hace casi un mes ya se retiraron; las más recientes siguen en el local
+  // (aparecen en el tablero como "Listo" y en "Para no olvidarse").
+  if ($finalizada !== null && $dias >= 25) {
+    $db->prepare('UPDATE ordenes SET entregado_en = ? WHERE id = ?')->execute(["{$finalizada} 17:30:00", $id]);
+  }
   if ($presupuesto !== null) {
     $db->prepare('UPDATE ordenes SET presupuesto_enviado = ?, presupuesto_respuesta = ?, presupuesto_respuesta_en = ? WHERE id = ?')
       ->execute([$hace($dias, '12:00'), $presupuesto === 'enviado' ? null : $presupuesto, $presupuesto === 'enviado' ? null : $hace(max(0, $dias - 1), '18:30'), $id]);
@@ -304,6 +309,8 @@ $orden($notebookFlorencia, ['Diagnóstico' => 1, 'Formateo e instalación de Win
   'falla_reportada' => 'No arranca: queda en el logo de Asus.', 'accesorios' => 'Cargador',
   'diagnostico' => 'Sistema dañado; el disco está sano.',
 ], 'pendiente', 2, null, [], 'enviado');
+// Link fijo del presupuesto sin responder: las capturas del manual muestran lo que ve el cliente.
+$db->exec("UPDATE ordenes SET token = REPEAT('e', 64) WHERE id = (SELECT id FROM (SELECT MAX(id) AS id FROM ordenes) AS ultima)");
 $orden($consolaCamila, ['Limpieza interna' => 1, 'Cambio de pasta térmica' => 1], [
   'falla_reportada' => 'Se apaga después de una hora de juego.', 'accesorios' => 'Joystick y cable HDMI',
   'estado_ingreso' => 'Sin marcas.',

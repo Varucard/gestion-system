@@ -14,7 +14,8 @@ $dato = fn(?string $v) => $v !== null && $v !== '' ? e($v) : '—';
       <?php if ($equipo['estado'] !== 'activo'): ?><span class="badge bg-secondary fs-6">inactivo</span><?php endif; ?>
     </h4>
     <div class="d-flex gap-2">
-      <a href="<?= url('ordenes/crear?equipo_id=' . $equipo['id']) ?>" class="btn btn-sm btn-seccion"><?= icono('plus-lg') ?> Nueva orden</a>
+      <?php // Por "Llegó un equipo": avisa si ya tiene una orden abierta, el formulario completo no. ?>
+      <a href="<?= url('recepcion?equipo_id=' . (int) $equipo['id']) ?>" class="btn btn-sm btn-seccion"><?= icono('laptop') ?> Recibir este equipo</a>
       <?= boton_accion("equipos/{$equipo['id']}/editar", 'pencil', 'Editar', 'btn-outline-primary') ?>
     </div>
   </div>
@@ -33,6 +34,8 @@ $dato = fn(?string $v) => $v !== null && $v !== '' ? e($v) : '—';
           <a class="small" href="<?= url("ordenes/{$proximoMantenimiento['orden_id']}") ?>">(orden #<?= (int) $proximoMantenimiento['orden_id'] ?>)</a>
         <?php else: ?>—<?php endif; ?>
       </dd>
+      <?php // Observaciones ocupa su propio renglón: a la derecha de "Próximo mantenimiento" quedaba partido. ?>
+      <div class="w-100" aria-hidden="true"></div>
       <dt class="col-sm-2">Observaciones</dt><dd class="col-sm-10"><?= nl2br($dato($equipo['detalle'])) ?></dd>
     </dl>
   </div>

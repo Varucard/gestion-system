@@ -8,7 +8,7 @@ use App\Enums\Rol;
 
 final class UsuarioRepository extends Repository
 {
-  private const COLUMNAS = 'id, nombre, usuario, rol, activo, ultimo_acceso';
+  private const COLUMNAS = 'id, nombre, usuario, rol, activo, ultimo_acceso, pin_hash IS NOT NULL AS tiene_pin';
 
   /** @return list<array<string, mixed>> */
   public function all(): array
@@ -59,6 +59,24 @@ final class UsuarioRepository extends Repository
   public function setPassword(int $id, string $hash): void
   {
     $this->execute('UPDATE usuarios SET password_hash = ? WHERE id = ?', [$hash, $id]);
+  }
+
+  /** PIN del modo mostrador (null: se le quita). */
+  public function setPin(int $id, ?string $hash): void
+  {
+    $this->execute('UPDATE usuarios SET pin_hash = ? WHERE id = ?', [$hash, $id]);
+  }
+
+  /** @return string|null el hash del PIN, si el usuario está activo y tiene uno */
+  public function pinHash(int $id): ?string
+  {
+    return $this->fetchOne('SELECT pin_hash FROM usuarios WHERE id = ? AND activo = 1', [$id])['pin_hash'] ?? null;
+  }
+
+  /** @return list<array{id: int|string, nombre: string}> los que pueden entrar con PIN en el mostrador */
+  public function conPin(): array
+  {
+    return $this->fetchAll('SELECT id, nombre FROM usuarios WHERE activo = 1 AND pin_hash IS NOT NULL ORDER BY nombre');
   }
 
   public function registrarAcceso(int $id): void

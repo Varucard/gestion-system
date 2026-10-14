@@ -61,7 +61,7 @@ $valor = fn(string $k, mixed $def = '') => old($k, $p[$k] ?? $def);
       <span class="small text-muted">Destildá los que no quieras modificar.</span>
     </div>
     <div class="card-body">
-      <form action="<?= url('precios/aplicar') ?>" method="POST" data-confirm="¿Aplicar los nuevos precios seleccionados?">
+      <form action="<?= url('precios/aplicar') ?>" method="POST" data-confirm="¿Aplicar los nuevos precios seleccionados?" data-confirm-aceptar="Sí, aplicar los precios">
         <?= csrf_field() ?>
         <?php foreach (['aplicar_a', 'porcentaje', 'redondeo', 'proveedor_id'] as $campo): ?>
           <input type="hidden" name="<?= $campo ?>" value="<?= e((string) ($p[$campo] ?? '')) ?>">

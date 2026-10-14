@@ -15,7 +15,7 @@ return [
       'action' => "equipos/{$v['id']}/estado",
       'label' => $activo ? 'Desactivar' : 'Activar',
       'class' => $activo ? 'btn-outline-warning' : 'btn-outline-success',
-      'icono' => $activo ? 'pause-circle' : 'play-circle',
-      'confirm' => '¿' . ($activo ? 'Desactivar' : 'Activar') . ' el equipo ' . equipo_texto($v) . '?',
+      'icono' => $activo ? 'slash-circle' : 'check-circle',
+      'confirm' => null, // se hace al toque y se ofrece "Deshacer"
     ]) . '</div>',
 ];

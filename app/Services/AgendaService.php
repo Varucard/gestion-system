@@ -19,6 +19,37 @@ final class AgendaService
   }
 
   /**
+   * Horarios de un día para elegir al agendar: los de la grilla que caen dentro del horario
+   * de atención y todavía no pasaron, con sus cupos libres (0 = completo).
+   *
+   * @return array{abierto: bool, motivo: ?string, horarios: list<array{hora: string, libres: int}>}
+   */
+  public function dia(string $fecha, DateTimeImmutable $ahora): array
+  {
+    if (!Validator::fecha($fecha)) {
+      return ['abierto' => false, 'motivo' => 'La fecha no es válida.', 'horarios' => []];
+    }
+
+    $horario = $this->configuracion->horario();
+    if ($horario->esFeriado($fecha)) {
+      return ['abierto' => false, 'motivo' => 'Ese día es feriado.', 'horarios' => []];
+    }
+    if ($horario->franja($fecha) === null) {
+      return ['abierto' => false, 'motivo' => 'No atendemos ese día.', 'horarios' => []];
+    }
+
+    $semana = $this->semana($fecha, $ahora);
+    $horarios = [];
+    foreach ($semana['celdas'][$fecha] ?? [] as $hora => $celda) {
+      if ($celda['abierta'] && !$celda['pasada']) {
+        $horarios[] = ['hora' => $hora, 'libres' => $celda['libres']];
+      }
+    }
+
+    return ['abierto' => true, 'motivo' => $horarios === [] ? 'No quedan horarios para ese día.' : null, 'horarios' => $horarios];
+  }
+
+  /**
    * @return array{
    *   desde: string, hasta: string, anterior: string, siguiente: string,
    *   dias: list<array{fecha: string, nombre: string, abierto: bool, feriado: bool}>,

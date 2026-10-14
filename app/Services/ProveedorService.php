@@ -39,9 +39,9 @@ final class ProveedorService
     $email = $campo('email') !== null ? mb_strtolower($campo('email')) : null;
 
     (new Validator())
-      ->check(Validator::largo($nombre, 2, 100), 'El nombre del proveedor debe tener entre 2 y 100 caracteres.')
-      ->check($cuit === null || (bool) preg_match('/^\d{2}-?\d{8}-?\d$/', $cuit), 'El CUIT debe tener el formato 30-12345678-9.')
-      ->check($email === null || filter_var($email, FILTER_VALIDATE_EMAIL) !== false, 'El email no es válido.')
+      ->check(Validator::largo($nombre, 2, 100), 'El nombre del proveedor debe tener entre 2 y 100 caracteres.', 'nombre')
+      ->check($cuit === null || (bool) preg_match('/^\d{2}-?\d{8}-?\d$/', $cuit), 'El CUIT debe tener el formato 30-12345678-9.', 'cuit')
+      ->check($email === null || filter_var($email, FILTER_VALIDATE_EMAIL) !== false, 'El email no es válido.', 'email')
       ->validate();
 
     $proveedor = new Proveedor(

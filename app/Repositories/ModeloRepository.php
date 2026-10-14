@@ -34,6 +34,12 @@ final class ModeloRepository extends Repository
     return $this->fetchOne('SELECT id, marca_id, nombre FROM modelos WHERE id = ?', [$id]);
   }
 
+  /** @return array<string, mixed>|null modelo de la marca con ese nombre (sin distinguir mayúsculas) */
+  public function porNombre(int $marcaId, string $nombre): ?array
+  {
+    return $this->fetchOne('SELECT id, marca_id, nombre FROM modelos WHERE marca_id = ? AND nombre = ?', [$marcaId, $nombre]);
+  }
+
   public function perteneceAMarca(int $modeloId, int $marcaId): bool
   {
     return $this->fetchOne('SELECT 1 FROM modelos WHERE id = ? AND marca_id = ?', [$modeloId, $marcaId]) !== null;

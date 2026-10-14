@@ -176,7 +176,7 @@
         <td style="width: 150px; padding-left: 8px;">
           <div class="box" style="font-size:9px;">
             <div><strong>Nº <?= $entrega ? 'Orden' : 'Presupuesto' ?>:</strong> <?= e($numero) ?></div>
-            <div><strong>Fecha:</strong> <?= format_date($entrega ? $orden['fecha_realizado'] : $orden['created_at']) ?></div>
+            <div><strong>Fecha:</strong> <?= format_date($entrega ? ($orden['entregado_en'] ?? $orden['fecha_realizado']) : $orden['created_at']) ?></div>
             <?php if ($entrega): ?>
           <div><strong>Técnico:</strong> <?= e($orden['tecnico'] ?? '—') ?></div>
         <?php else: ?>
@@ -223,10 +223,10 @@
       <tbody>
         <?php foreach ($items as $item): ?>
           <tr>
-            <td><?= e($item['repuesto_id'] !== null ? 'Repuesto: ' . $item['repuesto_nombre'] : $item['servicio_nombre']) ?></td>
+            <td><?= e(item_orden($item)) ?></td>
             <td class="right"><?= qty($item['cantidad']) ?></td>
-            <td class="right">$ <?= money($item['precio_unitario']) ?></td>
-            <td class="right">$ <?= money($item['costo']) ?></td>
+            <td class="right"><?= $item['provisto_cliente'] ? '—' : '$ ' . money($item['precio_unitario']) ?></td>
+            <td class="right"><?= $item['provisto_cliente'] ? '—' : '$ ' . money($item['costo']) ?></td>
           </tr>
         <?php endforeach; ?>
       </tbody>
@@ -274,6 +274,9 @@
       <p class="small" style="margin-top:4px;">
         <strong>Garantía del trabajo:</strong> <?= (int) $trabajo['garantia'] ?> días a partir de la entrega del equipo<?= $entrega ? ' (vence el ' . e($vencimientoGarantia) . ')' : '' ?>.
       </p>
+      <?php if ($provistosCliente && $trabajo['garantia_repuestos_cliente'] !== ''): ?>
+        <p class="small" style="margin-top:4px;"><?= e($trabajo['garantia_repuestos_cliente']) ?></p>
+      <?php endif; ?>
     </div>
 
     <!-- LEGAL -->
@@ -281,10 +284,19 @@
       <?= e($trabajo['mensaje_legal']) ?>
     </div>
 
+    <!-- QR -->
+    <table style="margin-top:10px;"><tr>
+      <td style="width:70px;"><img src="<?= e($qrPng) ?>" alt="Código QR" style="width:64px; height:64px;"></td>
+      <td class="small"><?= e($textoQr) ?></td>
+    </tr></table>
+
     <!-- FIRMA -->
     <div class="firma-block">
       <div class="small"><?= $entrega ? 'Recibí el equipo en conformidad con los trabajos detallados:' : 'Firma y conformidad del cliente:' ?></div>
-      <div class="firma-line">Nombre y Firma</div>
+      <?php if (!empty($firma)): ?>
+        <img src="<?= e($firma) ?>" alt="Firma del cliente" style="display:block; margin-top:6px; max-width:200px; max-height:70px;">
+      <?php endif; ?>
+      <div class="firma-line"><?= !empty($firmaAclaracion) ? e($firmaAclaracion) : 'Nombre y Firma' ?></div>
     </div>
 
   </div>

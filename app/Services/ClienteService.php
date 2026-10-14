@@ -106,23 +106,63 @@ final class ClienteService
     $this->auditor->registrar('eliminar', 'cliente', $id, "Cliente eliminado: {$cliente['apellido']}, {$cliente['nombre']} (DNI {$cliente['dni']})");
   }
 
+  /**
+   * Lleva un teléfono argentino a los 10 dígitos que se guardan (código de área + número),
+   * aceptándolo como lo dicta la gente: con espacios o guiones, con +54 o 54 9, con el 0
+   * del código de área o con el 15 de los celulares ("011 15 2345-6789" → "1123456789").
+   * Si no se puede llevar a 10 dígitos, devuelve los dígitos tal cual y la validación avisa.
+   */
+  public static function normalizarTelefono(string $telefono): string
+  {
+    $digitos = preg_replace('/\D/', '', $telefono);
+
+    if (strlen($digitos) > 10 && str_starts_with($digitos, '54')) {
+      $digitos = substr($digitos, 2);
+      if (strlen($digitos) > 10 && str_starts_with($digitos, '9')) {
+        $digitos = substr($digitos, 1);
+      }
+    }
+    if (strlen($digitos) > 10 && str_starts_with($digitos, '0')) {
+      $digitos = substr($digitos, 1);
+    }
+    // El 15 va después del código de área, que tiene de 2 a 4 dígitos.
+    if (strlen($digitos) === 12) {
+      foreach ([2, 3, 4] as $area) {
+        if (substr($digitos, $area, 2) === '15') {
+          return substr($digitos, 0, $area) . substr($digitos, $area + 2);
+        }
+      }
+    }
+
+    return $digitos;
+  }
+
+  /**
+   * 10 dígitos con un código de área que exista: los argentinos empiezan con 11, 2 o 3.
+   * Así "15 2345 6789" (el celular dictado sin el 11) no pasa como si 15 fuera un área.
+   */
+  public static function telefonoValido(string $telefono): bool
+  {
+    return (bool) preg_match('/^(11\d{8}|[23]\d{9})$/', $telefono);
+  }
+
   /** @param array<string, mixed> $input */
   private function construir(array $input, ?int $id = null): Cliente
   {
     $nombre = mb_strtoupper(trim((string) ($input['nombre'] ?? '')));
     $apellido = mb_strtoupper(trim((string) ($input['apellido'] ?? '')));
     $dni = trim((string) ($input['dni'] ?? ''));
-    $telefono = preg_replace('/\D/', '', (string) ($input['telefono'] ?? ''));
+    $telefono = self::normalizarTelefono((string) ($input['telefono'] ?? ''));
     $direccion = Validator::nullable(mb_strtoupper((string) ($input['direccion'] ?? '')));
     $email = Validator::nullable(mb_strtolower((string) ($input['email'] ?? '')));
 
     (new Validator())
-      ->check(Validator::soloLetras($nombre, 2, 50), 'El nombre debe contener solo letras (2 a 50 caracteres).')
-      ->check(Validator::soloLetras($apellido, 2, 50), 'El apellido debe contener solo letras (2 a 50 caracteres).')
-      ->check((bool) preg_match('/^\d{6,8}$/', $dni), 'El DNI debe tener entre 6 y 8 dígitos.')
-      ->check((bool) preg_match('/^\d{10}$/', $telefono), 'El teléfono debe tener 10 dígitos (código de área + número).')
-      ->check($direccion === null || Validator::largo($direccion, 5, 200), 'La dirección debe tener entre 5 y 200 caracteres.')
-      ->check($email === null || filter_var($email, FILTER_VALIDATE_EMAIL) !== false, 'El email no tiene un formato válido.')
+      ->check(Validator::soloLetras($nombre, 2, 50), 'El nombre debe contener solo letras (2 a 50 caracteres).', 'nombre')
+      ->check(Validator::soloLetras($apellido, 2, 50), 'El apellido debe contener solo letras (2 a 50 caracteres).', 'apellido')
+      ->check((bool) preg_match('/^\d{6,8}$/', $dni), 'El DNI debe tener entre 6 y 8 dígitos.', 'dni')
+      ->check(self::telefonoValido($telefono), 'El teléfono no es válido: tiene que tener el código de área y el número (por ejemplo, 11 2345 6789).', 'telefono')
+      ->check($direccion === null || Validator::largo($direccion, 5, 200), 'La dirección debe tener entre 5 y 200 caracteres.', 'direccion')
+      ->check($email === null || filter_var($email, FILTER_VALIDATE_EMAIL) !== false, 'El email no tiene un formato válido.', 'email')
       ->validate();
 
     return new Cliente($nombre, $apellido, $dni, $telefono, $direccion, $email, id: $id);

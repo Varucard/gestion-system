@@ -24,11 +24,16 @@ final class Auth
   ) {
   }
 
-  /** @param array<string, mixed> $usuario */
-  public function login(array $usuario): void
+  /**
+   * @param array<string, mixed> $usuario
+   * @param bool $mostrador entró con PIN en un mostrador: la sesión se cierra a los pocos minutos sin uso
+   */
+  public function login(array $usuario, bool $mostrador = false): void
   {
     // Nuevo id de sesión para evitar fijación de sesión.
-    session_regenerate_id(true);
+    if (session_status() === PHP_SESSION_ACTIVE) {
+      session_regenerate_id(true);
+    }
 
     $_SESSION[self::KEY] = [
       'id' => (int) $usuario['id'],
@@ -36,7 +41,14 @@ final class Auth
       'usuario' => (string) $usuario['usuario'],
       'rol' => (string) $usuario['rol'],
       'actividad' => time(),
+      'mostrador' => $mostrador,
     ];
+  }
+
+  /** ¿La sesión es de un mostrador (se entró con PIN)? */
+  public function enMostrador(): bool
+  {
+    return (bool) ($this->user()['mostrador'] ?? false);
   }
 
   public function logout(): void
@@ -56,7 +68,8 @@ final class Auth
       return null;
     }
 
-    if (time() - $auth['actividad'] > self::INACTIVIDAD_MAXIMA) {
+    $maxima = !empty($auth['mostrador']) ? \App\Services\MostradorService::INACTIVIDAD : self::INACTIVIDAD_MAXIMA;
+    if (time() - $auth['actividad'] > $maxima) {
       $this->logout();
 
       return null;
@@ -90,9 +103,16 @@ final class Auth
     return $this->user() !== null;
   }
 
+  /**
+   * ¿Puede usar lo de administrador? Entrando con PIN en un mostrador, no: un PIN de 4 dígitos
+   * en la PC compartida no alcanza para la configuración, los usuarios o los backups. Para eso,
+   * se entra con usuario y contraseña.
+   */
   public function esAdministrador(): bool
   {
-    return ($this->user()['rol'] ?? null) === Rol::Administrador->value;
+    $usuario = $this->user();
+
+    return ($usuario['rol'] ?? null) === Rol::Administrador->value && empty($usuario['mostrador']);
   }
 
   /** Actualiza los datos visibles (nombre/rol) si el usuario editó su propio registro. */

@@ -62,9 +62,10 @@ final class UsuarioService
     $fila = $usuario !== '' ? $this->usuarios->findParaLogin($usuario) : null;
 
     // Si el usuario no existe se verifica igual contra un hash ficticio, para no
-    // revelar qué usuarios existen por la diferencia en el tiempo de respuesta.
+    // revelar qué usuarios existen por la diferencia en el tiempo de respuesta. En hexadecimal:
+    // los bytes crudos a veces traen un "\0" y bcrypt lo rechaza con un error (1 vez cada 16).
     static $hashFicticio = null;
-    $hash = $fila['password_hash'] ?? ($hashFicticio ??= password_hash(random_bytes(16), PASSWORD_DEFAULT));
+    $hash = $fila['password_hash'] ?? ($hashFicticio ??= password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT));
     $valida = password_verify($clave, $hash);
 
     if ($fila === null || !$valida || !$fila['activo']) {
@@ -154,6 +155,32 @@ final class UsuarioService
     $this->auditor->registrar('cambiar_clave', 'usuario', $id, "{$usuario['usuario']} cambió su contraseña");
   }
 
+  /**
+   * PIN para entrar en el modo mostrador. Se pide la contraseña: quien encuentre la sesión
+   * abierta no puede ponerse un PIN para entrar después como esa persona.
+   */
+  public function definirPin(int $id, string $claveActual, string $pin, string $confirmacion): void
+  {
+    $usuario = $this->obtener($id);
+    $fila = $this->usuarios->findParaLogin($usuario['usuario']);
+
+    (new Validator())
+      ->check(password_verify($claveActual, $fila['password_hash']), 'La contraseña actual no es correcta.')
+      ->check(MostradorService::pinValido($pin), sprintf('El PIN tiene que ser de %d números y no uno fácil de adivinar (como 1234, 0000 o 1212).', MostradorService::LARGO_PIN))
+      ->check($pin === $confirmacion, 'Los dos PIN no coinciden.')
+      ->validate();
+
+    $this->usuarios->setPin($id, password_hash($pin, PASSWORD_DEFAULT));
+    $this->auditor->registrar('definir_pin', 'usuario', $id, "{$usuario['usuario']} definió su PIN del mostrador");
+  }
+
+  public function quitarPin(int $id): void
+  {
+    $usuario = $this->obtener($id);
+    $this->usuarios->setPin($id, null);
+    $this->auditor->registrar('quitar_pin', 'usuario', $id, "Se quitó el PIN del mostrador de {$usuario['usuario']}");
+  }
+
   /** Desbloquea el usuario (lo usa bin/usuario.php al reiniciar la clave). */
   public function desbloquear(string $usuario): void
   {
@@ -168,9 +195,9 @@ final class UsuarioService
     $rol = $forzarRol ?? Rol::tryFrom((string) ($input['rol'] ?? ''));
 
     (new Validator())
-      ->check(Validator::largo($nombre, 2, 100), 'El nombre debe tener entre 2 y 100 caracteres.')
-      ->check((bool) preg_match('/^[a-z0-9._-]{3,50}$/', $usuario), 'El usuario debe tener entre 3 y 50 caracteres (letras, números, punto, guion).')
-      ->check($rol !== null, 'Seleccioná un rol válido.')
+      ->check(Validator::largo($nombre, 2, 100), 'El nombre debe tener entre 2 y 100 caracteres.', 'nombre')
+      ->check((bool) preg_match('/^[a-z0-9._-]{3,50}$/', $usuario), 'El usuario debe tener entre 3 y 50 caracteres (letras, números, punto, guion).', 'usuario')
+      ->check($rol !== null, 'Seleccioná un rol válido.', 'rol')
       ->validate();
 
     return [$nombre, $usuario, $rol];
@@ -179,8 +206,8 @@ final class UsuarioService
   private function validarClave(string $clave, string $confirmacion): void
   {
     (new Validator())
-      ->check(mb_strlen($clave) >= self::LARGO_MINIMO_CLAVE, sprintf('La contraseña debe tener al menos %d caracteres.', self::LARGO_MINIMO_CLAVE))
-      ->check($clave === $confirmacion, 'Las contraseñas no coinciden.')
+      ->check(mb_strlen($clave) >= self::LARGO_MINIMO_CLAVE, sprintf('La contraseña debe tener al menos %d caracteres.', self::LARGO_MINIMO_CLAVE), 'clave')
+      ->check($clave === $confirmacion, 'Las contraseñas no coinciden.', 'clave_confirmacion')
       ->validate();
   }
 }

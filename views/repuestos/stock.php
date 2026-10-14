@@ -22,8 +22,8 @@ $tipos = ['ingreso' => ['Ingreso', 'success'], 'egreso' => ['Egreso', 'warning']
           <?= csrf_field() ?>
           <div class="row">
             <?= $view->partial('componentes/campo', [
-              'nombre' => 'cantidad', 'etiqueta' => 'Cantidad *', 'tipo' => 'number', 'columna' => 'col-sm-4 mb-2', 'usarAnterior' => false,
-              'atributos' => ['step' => '0.01', 'min' => '0.01', 'required' => true],
+              'nombre' => 'cantidad', 'etiqueta' => 'Cantidad *', 'tipo' => 'importe', 'columna' => 'col-sm-4 mb-2', 'usarAnterior' => false,
+              'atributos' => ['data-min' => '0.01', 'data-formato' => 'cantidad', 'required' => true, 'data-error-min' => 'La cantidad tiene que ser mayor a 0.'],
             ]) ?>
             <?= $view->partial('componentes/campo', [
               'nombre' => 'proveedor_id', 'etiqueta' => 'Proveedor', 'tipo' => 'select', 'columna' => 'col-sm-8 mb-2', 'usarAnterior' => false,
@@ -33,8 +33,9 @@ $tipos = ['ingreso' => ['Ingreso', 'success'], 'egreso' => ['Egreso', 'warning']
           </div>
           <div class="row">
             <?= $view->partial('componentes/campo', [
-              'nombre' => 'costo_unitario', 'etiqueta' => 'Costo unitario', 'tipo' => 'number', 'columna' => 'col-sm-4 mb-2', 'usarAnterior' => false,
-              'atributos' => ['step' => '0.01', 'min' => 0, 'placeholder' => $repuesto['precio_costo'] !== null ? money($repuesto['precio_costo']) : ''],
+              'nombre' => 'costo_unitario', 'etiqueta' => 'Costo unitario', 'tipo' => 'importe', 'prefijo' => '$', 'columna' => 'col-sm-4 mb-2', 'usarAnterior' => false,
+              'atributos' => ['data-min' => 0],
+              'ayuda' => $repuesto['precio_costo'] !== null ? 'Último costo: $ ' . money($repuesto['precio_costo']) : 'Si lo dejás vacío, no cambia el costo.',
             ]) ?>
             <div class="col-sm-8 mb-2 d-flex align-items-end">
               <div class="form-check">
@@ -53,21 +54,29 @@ $tipos = ['ingreso' => ['Ingreso', 'success'], 'egreso' => ['Egreso', 'warning']
         </form>
       </div>
       <div class="col-lg-6">
-        <h5>Ajustar por conteo</h5>
-        <form action="<?= url("repuestos/{$repuesto['id']}/ajustes") ?>" method="POST">
+        <?php // Plegado y explicado: cargar acá lo que llegó pisaría el stock en vez de sumarlo. ?>
+        <details class="mas-datos">
+          <summary>¿El stock no coincide con lo que hay? Ajustar por conteo</summary>
+          <p class="small text-muted mt-2 mb-3">
+            Usalo después de contar los repuestos en el estante: <strong>reemplaza</strong> el stock actual
+            (<?= qty($repuesto['stock_actual']) ?>) por el que contaste. Para sumar lo que llegó de un proveedor, usá «Registrar ingreso».
+          </p>
+        <form action="<?= url("repuestos/{$repuesto['id']}/ajustes") ?>" method="POST"
+          data-confirm="¿Reemplazar el stock actual (<?= e(qty($repuesto['stock_actual'])) ?>) por el que contaste?" data-confirm-aceptar="Sí, reemplazarlo">
           <?= csrf_field() ?>
           <div class="row">
             <?= $view->partial('componentes/campo', [
-              'nombre' => 'stock_real', 'etiqueta' => 'Stock real *', 'tipo' => 'number', 'columna' => 'col-sm-4 mb-2', 'usarAnterior' => false,
-              'atributos' => ['step' => '0.01', 'min' => 0, 'required' => true],
+              'nombre' => 'stock_real', 'etiqueta' => 'Stock que contaste *', 'tipo' => 'importe', 'columna' => 'col-sm-4 mb-2', 'usarAnterior' => false,
+              'atributos' => ['data-min' => 0, 'data-formato' => 'cantidad', 'required' => true],
             ]) ?>
             <?= $view->partial('componentes/campo', [
               'nombre' => 'motivo', 'id' => 'motivo_ajuste', 'etiqueta' => 'Motivo *', 'columna' => 'col-sm-8 mb-2', 'usarAnterior' => false,
               'atributos' => ['maxlength' => 255, 'required' => true, 'placeholder' => 'Ej: Inventario mensual'],
             ]) ?>
           </div>
-          <button type="submit" class="btn btn-seccion"><?= icono('check-lg') ?> Ajustar stock</button>
+          <button type="submit" class="btn btn-outline-secondary"><?= icono('check-lg') ?> Ajustar stock</button>
         </form>
+        </details>
       </div>
     </div>
 

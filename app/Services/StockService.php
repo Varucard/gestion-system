@@ -16,7 +16,8 @@ use App\Support\Validator;
  *
  * Regla: una orden descuenta sus repuestos al pasar a "finalizado" y los
  * repone si deja de estar finalizada. La bandera `stock_descontado` de la
- * orden evita descontar dos veces.
+ * orden evita descontar dos veces. Los repuestos que trajo el cliente no
+ * salen del stock del negocio.
  */
 final class StockService
 {
@@ -45,11 +46,11 @@ final class StockService
     bool $actualizarPrecio = false,
   ): float {
     $repuesto = $this->repuesto($repuestoId);
-    $valor = Validator::importe($cantidad);
+    $valor = Validator::cantidad($cantidad);
     $costo = trim($costoUnitario) === '' ? null : Validator::importe($costoUnitario);
 
     (new Validator())
-      ->check($valor !== null && $valor > 0, 'La cantidad a ingresar debe ser mayor a 0.')
+      ->check($valor !== null && $valor > 0, 'La cantidad a ingresar debe ser mayor a 0 (para mil doscientos escribí 1200; para uno y cuarto, 1,25).')
       ->check(trim($costoUnitario) === '' || $costo !== null, 'El costo unitario no es válido.')
       ->check(!$actualizarPrecio || $costo !== null, 'Para actualizar el precio de venta hay que indicar el costo.')
       ->check($proveedorId === null || $this->proveedores->find($proveedorId) !== null, 'El proveedor seleccionado no existe.')
@@ -78,7 +79,7 @@ final class StockService
   public function ajustar(int $repuestoId, string $stockReal, ?string $motivo, ?int $usuarioId): float
   {
     $repuesto = $this->repuesto($repuestoId);
-    $valor = Validator::importe($stockReal);
+    $valor = Validator::cantidad($stockReal);
     $motivo = Validator::nullable((string) $motivo);
 
     (new Validator())
@@ -102,7 +103,7 @@ final class StockService
     if (!$this->configuracion->seccion('stock')['permitir_negativo']) {
       $faltantes = [];
       foreach ($this->ordenes->items($ordenId) as $item) {
-        if ($item['repuesto_id'] === null) {
+        if (!self::mueveStock($item)) {
           continue;
         }
         $repuesto = $this->repuesto((int) $item['repuesto_id']);
@@ -125,7 +126,7 @@ final class StockService
   {
     $this->ordenes->transaction(function () use ($ordenId, $signo, $usuarioId, $motivo) {
       foreach ($this->ordenes->items($ordenId) as $item) {
-        if ($item['repuesto_id'] !== null) {
+        if (self::mueveStock($item)) {
           $this->stock->registrar(
             (int) $item['repuesto_id'],
             $signo < 0 ? 'egreso' : 'ingreso',
@@ -139,6 +140,12 @@ final class StockService
       }
       $this->ordenes->setStockDescontado($ordenId, $signo < 0);
     });
+  }
+
+  /** ¿El ítem de la orden sale del stock? Solo los repuestos del negocio (no los que trajo el cliente). */
+  public static function mueveStock(array $item): bool
+  {
+    return $item['repuesto_id'] !== null && !$item['provisto_cliente'];
   }
 
   /** @return array<string, mixed> */

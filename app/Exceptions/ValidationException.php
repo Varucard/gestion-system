@@ -11,8 +11,11 @@ use RuntimeException;
  */
 final class ValidationException extends RuntimeException
 {
-  /** @param list<string> $errors */
-  public function __construct(private readonly array $errors)
+  /**
+   * @param list<string> $errors
+   * @param array<string, string> $campos  campo del formulario => mensaje (los que se pueden marcar en su campo)
+   */
+  public function __construct(private readonly array $errors, private readonly array $campos = [])
   {
     parent::__construct(implode(' ', $errors));
   }
@@ -21,5 +24,11 @@ final class ValidationException extends RuntimeException
   public function errors(): array
   {
     return $this->errors;
+  }
+
+  /** @return array<string, string> */
+  public function campos(): array
+  {
+    return $this->campos;
   }
 }

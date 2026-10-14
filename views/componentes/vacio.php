@@ -8,8 +8,13 @@
  * @var string $icono                  ícono de Bootstrap Icons
  * @var string $texto
  * @var array{0: string, 1: string}|null $accion  [ruta, texto del botón]
+ * @var bool|null $compacto  una sola línea, sin el ícono grande (p. ej., las listas del inicio)
  */
 ?>
+<?php if (!empty($compacto)): ?>
+  <p class="vacio-compacto mb-0"><?= icono($icono) ?> <?= e($texto) ?></p>
+  <?php return; ?>
+<?php endif; ?>
 <div class="vacio">
   <?= icono($icono) ?>
   <p class="mb-2"><?= e($texto) ?></p>

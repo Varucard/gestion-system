@@ -1,0 +1,61 @@
+name: Versión
+
+# Sube la versión (archivo VERSION) cada vez que se mergea un PR a main, la commitea y crea
+# el tag vX.Y.Z. Nadie la edita a mano: el pie del sistema, la Ayuda y el PDF del manual la
+# leen de ese archivo, y el servidor la recibe con el `git pull` de siempre.
+#
+# Cuánto sube lo decide la etiqueta del PR:
+#   (ninguna)       la del medio:  1.6.0 → 1.7.0   (lo habitual: una entrega con cambios)
+#   version:patch   la última:     1.6.0 → 1.6.1   (un arreglo chico)
+#   version:major   la primera:    1.6.0 → 2.0.0   (un cambio grande)
+#   version:none    no sube                        (solo documentación, CI, etc.)
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+# Dos merges seguidos no se pisan: el segundo espera y parte de la versión que dejó el primero.
+concurrency:
+  group: version
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  subir:
+    if: github.event.pull_request.merged == true && !contains(github.event.pull_request.labels.*.name, 'version:none')
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Calcular la versión nueva
+        id: version
+        env:
+          ETIQUETAS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+        run: |
+          IFS=. read -r mayor medio menor < VERSION
+          if echo "$ETIQUETAS" | grep -q '"version:major"'; then
+            nueva="$((mayor + 1)).0.0"
+          elif echo "$ETIQUETAS" | grep -q '"version:patch"'; then
+            nueva="${mayor}.${medio}.$((menor + 1))"
+          else
+            nueva="${mayor}.$((medio + 1)).0"
+          fi
+          echo "$nueva" > VERSION
+          echo "nueva=$nueva" >> "$GITHUB_OUTPUT"
+
+      - name: Commitear y crear el tag
+        env:
+          NUEVA: ${{ steps.version.outputs.nueva }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Versión ${NUEVA} (PR #${PR})"
+          git tag -a "v${NUEVA}" -m "Versión ${NUEVA}"
+          git push origin main "v${NUEVA}"

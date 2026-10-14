@@ -67,6 +67,9 @@ $orden = array_keys($pasos);
           <div class="small my-2">
             <?= e(trim(($o['servicios'] ?? '') . ($o['repuestos'] ? ' · Repuestos: ' . $o['repuestos'] : ''), ' ·')) ?>
           </div>
+          <?php if ($o['repuestos_cliente']): ?>
+            <div class="small my-2"><?= icono('box-seam') ?> <strong>Repuestos que trajiste:</strong> <?= e($o['repuestos_cliente']) ?></div>
+          <?php endif; ?>
 
           <?php if ($estado === EstadoOrden::Cancelado): ?>
             <span class="badge bg-secondary">Cancelada</span>

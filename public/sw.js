@@ -9,7 +9,7 @@
  * Las páginas nunca se guardan en el caché: los datos personales no quedan en el teléfono.
  * Al cambiar este archivo, subir VERSION para descartar el caché anterior.
  */
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CACHE = `gestion-${VERSION}`;
 const OFFLINE = new URL('offline.html', self.registration.scope).href;
 const ASSETS = new URL('assets/', self.registration.scope).href;

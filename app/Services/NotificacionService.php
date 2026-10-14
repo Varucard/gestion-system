@@ -11,7 +11,6 @@ use App\Notificaciones\CanalNotificacion;
 use App\Notificaciones\Destinatario;
 use App\Notificaciones\EmailCanal;
 use App\Notificaciones\Mensaje;
-use App\Notificaciones\WhatsAppCanal;
 use App\Repositories\NotificacionRepository;
 use App\Repositories\OrdenRepository;
 use App\Repositories\TurnoRepository;
@@ -24,20 +23,34 @@ use Throwable;
  * Avisos a clientes: confirmación y recordatorio de turnos, envío del
  * presupuesto (y de su modificación), equipo listo y aviso de próximo mantenimiento.
  *
- * El canal se elige según "notificaciones.canales" de la configuración: se usa
- * el primero que esté disponible y para el que el cliente tenga datos de
- * contacto. Los textos salen de las plantillas de "mensajes"
- * ({canal}_{tipo}_asunto y {canal}_{tipo}).
+ * Los automáticos salen por email (único canal: se usa si está configurado y el cliente
+ * tiene email). Los textos salen de las plantillas de "mensajes" ({canal}_{tipo}_asunto y
+ * {canal}_{tipo}).
+ *
+ * WhatsApp va a mano: un botón abre la conversación (wa.me) con el mensaje escrito y el
+ * link correspondiente, y la persona lo envía desde su teléfono. No se usa la API de
+ * WhatsApp Business: cobra por mensaje y pide una cuenta verificada por Meta.
  */
 final class NotificacionService
 {
-  public const CANALES = ['email', 'whatsapp'];
+  public const CANALES = ['email'];
+  /** Mensajes de WhatsApp que se arman desde una orden (whatsappOrden()). */
+  public const WHATSAPP_ORDEN = [self::PRESUPUESTO, self::PRESUPUESTO_MODIFICADO, self::PRESUPUESTO_RECORDATORIO, self::LISTO, self::MANTENIMIENTO];
+
+  /** Cómo se nombra cada aviso en las pantallas (historial, registro de avisos). */
+  public const NOMBRES = [
+    self::CONFIRMACION => 'Confirmación del turno', self::RECORDATORIO => 'Recordatorio del turno',
+    self::PRESUPUESTO => 'Presupuesto', self::PRESUPUESTO_MODIFICADO => 'Presupuesto modificado',
+    self::PRESUPUESTO_RECORDATORIO => 'Recordatorio del presupuesto', self::LISTO => 'Equipo listo', self::MANTENIMIENTO => 'Próximo mantenimiento',
+  ];
   public const CONFIRMACION = 'confirmacion';
   public const RECORDATORIO = 'recordatorio';
   public const PRESUPUESTO = 'presupuesto';
   public const PRESUPUESTO_MODIFICADO = 'presupuesto_modificado';
   public const LISTO = 'listo';
   public const MANTENIMIENTO = 'mantenimiento';
+  /** Recordatorio de un presupuesto que el cliente no respondió (solo WhatsApp, desde el inicio). */
+  public const PRESUPUESTO_RECORDATORIO = 'presupuesto_recordatorio';
 
   /** Reintentos de los avisos automáticos si el envío falla. */
   private const MAX_ERRORES = 3;
@@ -68,7 +81,6 @@ final class NotificacionService
   {
     return $this->canalesPropios[$nombre] ?? match ($nombre) {
       'email' => new EmailCanal($this->configuracion->seccion('negocio')),
-      'whatsapp' => new WhatsAppCanal($this->configuracion->seccion('notificaciones')['codigo_pais']),
       default => throw new RuntimeException("Canal de notificación desconocido: {$nombre}"),
     };
   }
@@ -76,7 +88,9 @@ final class NotificacionService
   /** @return list<CanalNotificacion> canales activos en la configuración y listos para enviar */
   public function canalesDisponibles(): array
   {
-    $canales = array_map(fn(string $c) => $this->canal($c), $this->configuracion->seccion('notificaciones')['canales']);
+    // Una configuración guardada antes puede nombrar canales que ya no existen ("whatsapp"): se ignoran.
+    $nombres = array_intersect((array) $this->configuracion->seccion('notificaciones')['canales'], [...self::CANALES, ...array_keys($this->canalesPropios)]);
+    $canales = array_map(fn(string $c) => $this->canal($c), array_values($nombres));
 
     return array_values(array_filter($canales, fn(CanalNotificacion $c) => $c->disponible()));
   }
@@ -147,18 +161,62 @@ final class NotificacionService
     );
   }
 
-  /** Link wa.me con el recordatorio armado (botón manual, sin API). Registra el aviso. */
-  public function whatsappManual(int $turnoId): string
+  /**
+   * Link wa.me con un aviso del turno armado (botón manual, sin API). Registra el aviso.
+   * La confirmación lleva el link para que el cliente confirme o cancele; el recordatorio,
+   * los datos del turno.
+   */
+  public function whatsappManual(int $turnoId, string $tipo = self::RECORDATORIO): string
   {
+    $tipo = $tipo === self::CONFIRMACION ? self::CONFIRMACION : self::RECORDATORIO;
     $turno = $this->turno($turnoId);
-    $texto = $this->renderizar($this->plantilla('whatsapp_recordatorio'), $this->variablesTurno($turno));
-    $this->turnos->registrarRecordatorio($turnoId, 'whatsapp');
-    $this->registro->registrar($turnoId, self::RECORDATORIO, 'whatsapp_manual', (string) $turno['cliente_telefono'], 'enviado');
+    $texto = $this->renderizar($this->plantilla("whatsapp_{$tipo}"), $this->variablesTurno($turno));
+    $tipo === self::CONFIRMACION
+      ? $this->turnos->registrarConfirmacionEnviada($turnoId)
+      : $this->turnos->registrarRecordatorio($turnoId, 'whatsapp');
+    $this->registro->registrar($turnoId, $tipo, 'whatsapp_manual', (string) $turno['cliente_telefono'], 'enviado');
 
-    return whatsapp_url((string) $turno['cliente_telefono'], $texto, $this->configuracion->seccion('notificaciones')['codigo_pais']);
+    return $this->linkWhatsapp((string) $turno['cliente_telefono'], $texto);
   }
 
   // ---------- Órdenes ----------
+
+  /**
+   * Link wa.me con un aviso de la orden armado con su plantilla (whatsapp_{tipo}), que lleva
+   * el link para aceptar el presupuesto o para seguir el equipo. Queda registrado como enviado
+   * por "whatsapp_manual" (no sabemos si la persona tocó "Enviar" en su teléfono, pero se
+   * abrió con ese fin). Mandar el presupuesto así cuenta como un envío: renueva su vigencia.
+   *
+   * @param string $tipo uno de WHATSAPP_ORDEN
+   */
+  public function whatsappOrden(int $ordenId, string $tipo): string
+  {
+    $orden = $this->orden($ordenId);
+    $estado = EstadoOrden::from($orden['estado']);
+    $esPresupuesto = in_array($tipo, [self::PRESUPUESTO, self::PRESUPUESTO_MODIFICADO, self::PRESUPUESTO_RECORDATORIO], true);
+
+    (new Validator())
+      ->check(in_array($tipo, self::WHATSAPP_ORDEN, true), 'Ese mensaje de WhatsApp no existe.')
+      ->check(strlen(preg_replace('/\D/', '', (string) $orden['cliente_telefono'])) >= 10, 'El cliente no tiene un teléfono completo (con el código de área) para escribirle por WhatsApp.')
+      ->check(!$esPresupuesto || OrdenService::editable($estado), 'El presupuesto se manda mientras la orden está recibida o en reparación.')
+      ->check(!$esPresupuesto || $this->ordenes->items($ordenId) !== [], 'Primero cargá los trabajos y repuestos: sin eso no hay presupuesto que mandar.')
+      ->check($tipo !== self::LISTO || $estado === EstadoOrden::Finalizado, 'El aviso de "listo" se manda cuando el trabajo está terminado.')
+      ->check($tipo !== self::MANTENIMIENTO || $orden['proximo_mantenimiento_fecha'], 'La orden no tiene un próximo mantenimiento cargado.')
+      ->validate();
+
+    $texto = $this->renderizar($this->plantilla("whatsapp_{$tipo}"), $this->variablesOrden($orden));
+    $this->registro->registrar(null, $tipo, 'whatsapp_manual', (string) $orden['cliente_telefono'], 'enviado', ordenId: $ordenId);
+    if ($esPresupuesto) {
+      $this->ordenes->registrarPresupuestoEnviado($ordenId);
+    }
+    // El mantenimiento avisado a mano ya no se avisa por email (ni vuelve a aparecer "sin avisar").
+    if ($tipo === self::MANTENIMIENTO) {
+      $this->ordenes->reservarAvisoMantenimiento($ordenId);
+    }
+
+    return $this->linkWhatsapp((string) $orden['cliente_telefono'], $texto);
+  }
+
 
   /**
    * Envía el presupuesto con el PDF adjunto y el link para aceptarlo o rechazarlo.
@@ -185,7 +243,7 @@ final class NotificacionService
   {
     $orden = $this->orden($ordenId);
     (new Validator())
-      ->check(OrdenService::editable(EstadoOrden::from($orden['estado'])), 'Solo se puede enviar el presupuesto de órdenes pendientes o en proceso.')
+      ->check(OrdenService::editable(EstadoOrden::from($orden['estado'])), 'Solo se puede enviar el presupuesto de órdenes recibidas o en reparación.')
       ->validate();
     $pdf = $this->documentos->pdf($ordenId);
 
@@ -282,6 +340,14 @@ final class NotificacionService
     }
   }
 
+  /** Link de WhatsApp según cómo se abre en este equipo (whatsapp_modo()). */
+  private function linkWhatsapp(string $telefono, string $texto): string
+  {
+    $config = $this->configuracion->seccion('notificaciones');
+
+    return whatsapp_url($telefono, $texto, $config['codigo_pais'], whatsapp_modo($config));
+  }
+
   // ---------- Plantillas ----------
 
   /** Reemplaza {variable} por su valor; las desconocidas quedan como están. */
@@ -313,8 +379,12 @@ final class NotificacionService
       ...$this->variablesGenerales($orden),
       'numero' => str_pad((string) $orden['id'], 4, '0', STR_PAD_LEFT),
       'total' => money($orden['total']),
-      'saldo' => money(max(0, (float) $orden['total'] - $this->pagos->totalPagado((int) $orden['id']))),
+      'saldo' => money($saldo = max(0, (float) $orden['total'] - $this->pagos->totalPagado((int) $orden['id']))),
+      // Para no escribir "Saldo a abonar: $ 0,00" cuando ya está todo pago.
+      'aviso_saldo' => $saldo > 0 ? 'Saldo a abonar: $ ' . money($saldo) . '.' : 'Ya está todo pago.',
       'link_presupuesto' => absolute_url('presupuesto/' . $this->ordenes->token((int) $orden['id'])),
+      // El estado de este equipo, sin pedir DNI ni número de orden (el link ya identifica la orden).
+      'link_estado' => absolute_url('presupuesto/' . $this->ordenes->token((int) $orden['id']) . '/seguimiento'),
       'fecha_proximo' => $orden['proximo_mantenimiento_fecha'] ? format_date($orden['proximo_mantenimiento_fecha']) : '—',
     ];
   }

@@ -10,3 +10,6 @@
   </div>
   <button type="submit" class="btn btn-primary w-100">Ingresar</button>
 </form>
+<?php if (!empty($mostrador)): ?>
+  <p class="small text-center mt-3 mb-0"><a href="<?= url('login') ?>"><?= icono('grid-3x3-gap') ?> Entrar con PIN</a></p>
+<?php endif; ?>

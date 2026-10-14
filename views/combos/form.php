@@ -35,7 +35,7 @@ $view->script('ordenes.js');
         <?= $view->partial('componentes/campo', [
           'nombre' => 'servicio_id[]', 'id' => 'servicio_id', 'etiqueta' => 'Servicios', 'tipo' => 'select', 'buscable' => true,
           'columna' => 'col-md-6 mb-3', 'clase' => 'js-item-precio', 'placeholder' => 'Elegí servicios',
-          'atributos' => ['multiple' => true, 'data-tipo' => 'servicio'],
+          'atributos' => ['multiple' => true, 'data-tipo' => 'servicio', 'data-chip-corto' => true],
           'valor' => array_keys($detalle['servicio']), 'usarAnterior' => false,
           'opciones' => array_column(array_map(fn($s) => [(int) $s['id'], [
             'texto' => $s['nombre'], 'atributos' => ['data-precio' => (float) $s['precio_base']],
@@ -44,7 +44,7 @@ $view->script('ordenes.js');
         <?= $view->partial('componentes/campo', [
           'nombre' => 'repuesto_id[]', 'id' => 'repuesto_id', 'etiqueta' => 'Repuestos', 'tipo' => 'select', 'buscable' => true,
           'columna' => 'col-md-6 mb-3', 'clase' => 'js-item-precio', 'placeholder' => 'Elegí repuestos',
-          'atributos' => ['multiple' => true, 'data-tipo' => 'repuesto'],
+          'atributos' => ['multiple' => true, 'data-tipo' => 'repuesto', 'data-chip-corto' => true],
           'valor' => array_keys($detalle['repuesto']), 'usarAnterior' => false,
           'opciones' => array_column(array_map(fn($r) => [(int) $r['id'], [
             'texto' => $r['nombre'], 'atributos' => ['data-precio' => (float) $r['precio']],
@@ -54,8 +54,8 @@ $view->script('ordenes.js');
 
       <div class="table-responsive mb-3">
         <table class="table table-sm align-middle" id="detalle_orden">
-          <thead><tr><th>Ítem</th><th class="ancho-140">Cantidad</th><th class="text-end ancho-160">Subtotal actual</th></tr></thead>
-          <tbody><tr class="js-sin-items"><td colspan="3" class="text-muted">Elegí servicios y repuestos.</td></tr></tbody>
+          <thead><tr><th>Ítem</th><th class="ancho-140">Cantidad</th><th class="text-end ancho-160">Subtotal actual</th><th><span class="visually-hidden">Quitar</span></th></tr></thead>
+          <tbody><tr class="js-sin-items"><td colspan="4" class="text-muted">Elegí servicios y repuestos.</td></tr></tbody>
         </table>
       </div>
       <p><strong>Total a precios actuales: $ <span id="total_combo">0,00</span></strong></p>

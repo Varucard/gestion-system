@@ -31,8 +31,10 @@
       · <a href="<?= e(whatsapp_url($negocio['whatsapp'])) ?>" target="_blank" rel="noopener">WhatsApp</a>
       · <a href="mailto:<?= e($negocio['email']) ?>"><?= e($negocio['email']) ?></a>
     </footer>
+    <?= $view->partial('partials/pie', ['atajos' => false]) ?>
   </main>
   <script src="<?= asset('vendor/bootstrap.bundle.min.js') ?>"></script>
+  <script src="<?= asset('js/reglas.js') ?>"></script>
   <script src="<?= asset('js/app.js') ?>"></script>
 </body>
 

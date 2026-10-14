@@ -20,7 +20,10 @@ final class ReporteRepository extends Repository
     );
   }
 
-  /** @return list<array<string, mixed>> servicios o repuestos más vendidos (órdenes no canceladas, por fecha de la orden) */
+  /**
+   * @return list<array<string, mixed>> servicios o repuestos más vendidos (órdenes no canceladas, por fecha de la orden).
+   *                                    Los repuestos que trajo el cliente no cuentan: no los vendió el negocio.
+   */
   public function masVendidos(string $tipo, string $desde, string $hasta): array
   {
     [$tabla, $columna] = $tipo === 'repuesto' ? ['repuestos', 'repuesto_id'] : ['servicios', 'servicio_id'];
@@ -30,7 +33,7 @@ final class ReporteRepository extends Repository
          FROM ordenes_servicios os
          INNER JOIN ordenes o ON o.id = os.orden_id AND o.estado <> 'cancelado'
          INNER JOIN {$tabla} x ON x.id = os.{$columna}
-        WHERE o.created_at >= ? AND o.created_at < ? + INTERVAL 1 DAY
+        WHERE o.created_at >= ? AND o.created_at < ? + INTERVAL 1 DAY AND os.provisto_cliente = 0
         GROUP BY x.id, x.nombre ORDER BY total DESC",
       [$desde, $hasta]
     );

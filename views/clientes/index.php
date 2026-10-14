@@ -8,18 +8,15 @@
   </div>
   <div class="card-body">
     <div class="table-responsive">
-      <table data-vacio="Todavía no hay clientes registrados." class="table table-striped table-bordered" data-server="<?= e(url('clientes/datos')) ?>" data-filtros="#filtro_clientes" data-order='[[1, "asc"]]'>
+      <table data-vacio="Todavía no hay clientes cargados." data-vacio-accion="<?= e(url('clientes/crear')) ?>" data-vacio-boton="Cargar el primero"
+        class="table table-striped" data-server="<?= e(url('clientes/datos')) ?>" data-filtros="#filtro_clientes" data-order='[[0, "asc"]]'>
         <thead>
           <tr>
-            <th>Nombre</th>
-            <th>Apellido</th>
-            <th>DNI</th>
+            <th data-prioridad="1">Cliente</th>
             <th>Teléfono</th>
-            <th>Email</th>
-            <th>Dirección</th>
-            <th data-orderable="false">Saldo</th>
+            <th data-orderable="false" data-prioridad="3">Saldo</th>
             <th>Estado</th>
-            <th data-orderable="false">Acciones</th>
+            <th data-orderable="false" data-prioridad="2">Acciones</th>
           </tr>
         </thead>
         <tbody></tbody>

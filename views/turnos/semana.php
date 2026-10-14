@@ -15,14 +15,16 @@ $hoy = date('Y-m-d');
     <?php if ($agenda['franjas'] === []): ?>
       <?= $view->partial('componentes/vacio', ['icono' => 'calendar-x', 'texto' => 'No hay días de atención configurados.']) ?>
     <?php else: ?>
-      <div class="table-responsive">
+      <p class="small text-muted d-md-none mb-2"><?= icono('arrow-left-right') ?> Deslizá la grilla de costado para ver los otros días.</p>
+      <div class="table-responsive js-agenda-scroll">
         <table class="table table-bordered table-sm agenda-semanal align-top">
           <thead>
             <tr>
               <th class="ancho-70">Hora</th>
               <?php foreach ($agenda['dias'] as $dia): ?>
-                <th class="<?= $dia['fecha'] === $hoy ? 'table-warning' : '' ?> <?= $dia['abierto'] ? '' : 'text-muted' ?>">
+                <th class="<?= $dia['fecha'] === $hoy ? 'agenda-hoy' : '' ?> <?= $dia['abierto'] ? '' : 'text-muted' ?>" <?= $dia['fecha'] === $hoy ? 'aria-current="date"' : '' ?>>
                   <?= e($dia['nombre']) ?> <?= format_date($dia['fecha'], 'd/m') ?>
+                  <?= $dia['fecha'] === $hoy ? '<span class="badge agenda-hoy-badge">Hoy</span>' : '' ?>
                   <?= $dia['feriado'] ? '<span class="badge bg-secondary">feriado</span>' : '' ?>
                 </th>
               <?php endforeach; ?>
@@ -34,7 +36,7 @@ $hoy = date('Y-m-d');
                 <th class="text-nowrap"><?= e($hora) ?></th>
                 <?php foreach ($agenda['dias'] as $dia): ?>
                   <?php $celda = $agenda['celdas'][$dia['fecha']][$hora]; ?>
-                  <td class="agenda-celda <?= $celda['abierta'] ? '' : 'bg-body-secondary' ?>">
+                  <td class="agenda-celda <?= $celda['abierta'] ? '' : 'bg-body-secondary' ?> <?= $dia['fecha'] === $hoy && $celda['abierta'] ? 'agenda-hoy-columna' : '' ?>">
                     <?php foreach ($celda['turnos'] as $t): ?>
                       <a href="<?= url("turnos/{$t['id']}/editar") ?>" class="d-block small rounded px-1 mb-1 text-decoration-none
                         <?= $t['estado'] === 'confirmado' ? 'bg-success-subtle text-success-emphasis' : ($t['estado'] === 'realizado' ? 'bg-primary-subtle text-primary-emphasis' : 'bg-warning-subtle text-warning-emphasis') ?>"
@@ -44,7 +46,7 @@ $hoy = date('Y-m-d');
                       </a>
                     <?php endforeach; ?>
                     <?php if ($celda['abierta'] && !$celda['pasada'] && $celda['libres'] > 0): ?>
-                      <a href="<?= url("turnos/crear?fecha={$dia['fecha']}&hora={$hora}") ?>" class="small text-muted">+ libre<?= $celda['libres'] > 1 ? " ({$celda['libres']})" : '' ?></a>
+                      <a href="<?= url("turnos/crear?fecha={$dia['fecha']}&hora={$hora}") ?>" class="agenda-libre">+ libre<?= $celda['libres'] > 1 ? " ({$celda['libres']})" : '' ?></a>
                     <?php endif; ?>
                   </td>
                 <?php endforeach; ?>
@@ -53,10 +55,14 @@ $hoy = date('Y-m-d');
           </tbody>
         </table>
       </div>
+      <script>
+        // En el celular la semana no entra: arranca mostrando el día de hoy.
+        document.querySelector('.js-agenda-scroll th.agenda-hoy')?.scrollIntoView({ block: 'nearest', inline: 'center' });
+      </script>
       <p class="small text-muted mb-0">
-        <span class="badge bg-warning-subtle text-warning-emphasis">pendiente</span>
-        <span class="badge bg-success-subtle text-success-emphasis">confirmado</span>
-        <span class="badge bg-primary-subtle text-primary-emphasis">realizado</span>
+        <span class="badge bg-warning-subtle text-warning-emphasis">Pendiente</span>
+        <span class="badge bg-success-subtle text-success-emphasis">Confirmado</span>
+        <span class="badge bg-primary-subtle text-primary-emphasis">Realizado</span>
         · Tocá “+ libre” para agendar en ese horario.
       </p>
     <?php endif; ?>

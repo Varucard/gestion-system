@@ -83,6 +83,19 @@ final class RouterTextoTest extends TestCase
     $this->expectException(NotFoundException::class);
     $router->dispatch(new Request('GET', '/turno/corto', [], []));
   }
+
+  public function testElParametroCapturaNoDejaSalirDeLaCarpeta(): void
+  {
+    $container = new Container();
+    $router = new Router($container);
+    $router->get('/ayuda/capturas/{seccion:captura}', [FakeTextoController::class, 'show']);
+
+    $router->dispatch(new Request('GET', '/ayuda/capturas/80-config-negocio', [], []));
+    $this->assertSame('80-config-negocio', $container->get(FakeTextoController::class)->recibido);
+
+    $this->expectException(NotFoundException::class);
+    $router->dispatch(new Request('GET', '/ayuda/capturas/..%2F..%2F.env', [], []));
+  }
 }
 
 final class FakeTextoController

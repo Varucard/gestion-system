@@ -34,7 +34,7 @@ final class PwaController extends Controller
     $this->manifiesto("{$nombre} - Seguí tu equipo", $nombre, 'seguimiento');
   }
 
-  private function manifiesto(string $nombre, string $corto, string $inicio): never
+  private function manifiesto(string $nombre, string $corto, string $inicio): void
   {
     $iconos = [];
     foreach ([192, 512] as $lado) {
@@ -51,10 +51,9 @@ final class PwaController extends Controller
       'start_url' => url($inicio),
       'scope' => url('/'),
       'display' => 'standalone',
-      'background_color' => '#f8f9fa',
-      'theme_color' => '#f8f9fa',
+      'background_color' => '#0a0820',
+      'theme_color' => '#0a0820',
       'icons' => $iconos,
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    exit;
   }
 }

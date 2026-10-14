@@ -45,6 +45,12 @@ final class OrdenService
     return $estado === EstadoOrden::Pendiente || $estado === EstadoOrden::EnProceso;
   }
 
+  /** Cómo va un repuesto en la orden: del negocio con su precio, a costo (sin margen) o lo trae el cliente. */
+  public const MODOS_REPUESTO = ['negocio' => 'Del negocio', 'costo' => 'A costo (sin ganancia)', 'cliente' => 'Lo trae el cliente'];
+
+  /** Largo máximo de la descripción de una pieza que trae el cliente y no está en el catálogo. */
+  public const DESCRIPCION_MAXIMA = 150;
+
   /**
    * Crea o actualiza una orden.
    *
@@ -53,29 +59,44 @@ final class OrdenService
    * que el ítem ya tenía en la orden o, si es nuevo, el del catálogo: así los
    * precios quedan congelados aunque cambie el catálogo.
    *
+   * Los repuestos admiten además 'modo' (ver MODOS_REPUESTO). "A costo" toma el precio de
+   * costo del repuesto al marcarlo (y lo conserva mientras siga a costo); "lo trae el
+   * cliente" va sin precio. Las piezas que trae el cliente y no están en el catálogo van en
+   * $piezasCliente: lista de ['descripcion' => …, 'cantidad' => …].
+   *
    * @param array<int, mixed> $servicios
    * @param array<int, mixed> $repuestos
-   */
-  /**
    * @param array<string, mixed> $detalle falla_reportada, accesorios, estado_ingreso, diagnostico, trabajo_realizado,
    *                                      notas_internas, proximo_mantenimiento_fecha, turno_id (solo al crear)
+   * @param list<array{descripcion?: string, cantidad?: string}> $piezasCliente
    */
-  public function guardar(int $equipoId, array $servicios, array $repuestos, ?int $id = null, ?int $tecnicoId = null, array $detalle = []): int
-  {
+  public function guardar(
+    int $equipoId,
+    array $servicios,
+    array $repuestos,
+    ?int $id = null,
+    ?int $tecnicoId = null,
+    array $detalle = [],
+    array $piezasCliente = [],
+  ): int {
     $servicios = self::normalizarItems($servicios);
     $repuestos = self::normalizarItems($repuestos);
-    $preciosPrevios = ['servicio' => [], 'repuesto' => []];
+    $piezasCliente = self::normalizarPiezas($piezasCliente);
+    $previos = ['servicio' => [], 'repuesto' => []];
 
     if ($id !== null) {
       $actual = $this->obtener($id);
       (new Validator())
-        ->check(self::editable(EstadoOrden::from($actual['estado'])), 'Solo se pueden editar órdenes pendientes o en proceso.')
+        ->check(self::editable(EstadoOrden::from($actual['estado'])), 'Solo se pueden editar órdenes recibidas o en reparación.')
         ->validate();
 
       $itemsPrevios = $this->ordenes->items($id);
       foreach ($itemsPrevios as $item) {
+        if ($item['descripcion'] !== null) {
+          continue;
+        }
         $tipo = $item['repuesto_id'] !== null ? 'repuesto' : 'servicio';
-        $preciosPrevios[$tipo][(int) $item["{$tipo}_id"]] = (float) $item['precio_unitario'];
+        $previos[$tipo][(int) $item["{$tipo}_id"]] = ['precio' => (float) $item['precio_unitario'], 'modo' => self::modo($item)];
       }
     }
 
@@ -83,6 +104,17 @@ final class OrdenService
     $mantieneEquipo = isset($actual) && (int) $actual['equipo_id'] === $equipoId;
     $preciosServicios = $this->servicios->precios(array_keys($servicios));
     $preciosRepuestos = $this->repuestos->precios(array_keys($repuestos));
+    // Lo que se pasa a costo en este guardado (lo que ya estaba a costo conserva su precio).
+    $nuevosACosto = array_keys(array_filter(
+      $repuestos,
+      fn(array $r, int $rid) => $r['modo'] === 'costo' && ($previos['repuesto'][$rid]['modo'] ?? null) !== 'costo',
+      ARRAY_FILTER_USE_BOTH,
+    ));
+    $costos = $this->repuestos->costos($nuevosACosto);
+    $sinCosto = array_map(
+      fn(int $rid) => $this->repuestos->find($rid)['nombre'] ?? "#{$rid}",
+      array_keys(array_filter($costos, fn(?float $c) => $c === null)),
+    );
     $valoresValidos = fn(array $items) => array_reduce(
       $items,
       fn(bool $ok, array $i) => $ok && $i['cantidad'] !== null && $i['cantidad'] > 0 && ($i['precio'] === null || $i['precio'] >= 0),
@@ -92,20 +124,37 @@ final class OrdenService
     (new Validator())
       ->check($equipo !== null && ($equipo['estado'] === 'activo' || $mantieneEquipo), 'Seleccioná un equipo activo.')
       ->check($this->tecnicoValido($tecnicoId, $actual ?? null), 'Seleccioná un técnico activo.')
-      ->check($servicios !== [], 'Seleccioná al menos un servicio.')
       ->check(count($preciosServicios) === count($servicios), 'Alguno de los servicios seleccionados no existe.')
       ->check(count($preciosRepuestos) === count($repuestos), 'Alguno de los repuestos seleccionados no existe.')
-      ->check($valoresValidos($servicios) && $valoresValidos($repuestos), 'Las cantidades deben ser mayores a 0 y los precios no pueden ser negativos.')
+      ->check($valoresValidos($servicios) && $valoresValidos($repuestos), 'Las cantidades deben ser mayores a 0 (escribilas sin punto, o con coma si llevan decimales: 1,25) y los precios no pueden ser negativos.')
+      ->check(array_filter($repuestos, fn(array $r) => !isset(self::MODOS_REPUESTO[$r['modo']])) === [], 'Elegí si cada repuesto es del negocio, a costo o lo trae el cliente.')
+      ->check($sinCosto === [], sprintf(
+        'Para cobrar a costo hace falta el precio de costo, y no lo tiene: %s. Cargalo en el repuesto (o con un ingreso de stock) o cobralo con el precio normal.',
+        implode(', ', $sinCosto),
+      ))
+      ->check(array_filter($piezasCliente, fn(array $p) => $p['descripcion'] === '' || mb_strlen($p['descripcion']) > self::DESCRIPCION_MAXIMA) === [],
+        sprintf('Escribí qué repuesto trae el cliente (hasta %d caracteres).', self::DESCRIPCION_MAXIMA))
+      ->check(array_filter($piezasCliente, fn(array $p) => $p['cantidad'] === null || $p['cantidad'] <= 0) === [],
+        'La cantidad de cada repuesto que trae el cliente debe ser mayor a 0.')
       ->validate();
 
     $items = [];
     foreach ($servicios as $sid => $s) {
-      $precio = $s['precio'] ?? $preciosPrevios['servicio'][$sid] ?? $preciosServicios[$sid];
+      $precio = $s['precio'] ?? $previos['servicio'][$sid]['precio'] ?? $preciosServicios[$sid];
       $items[] = OrdenItem::servicio($sid, $precio, $s['cantidad']);
     }
     foreach ($repuestos as $rid => $r) {
-      $precio = $r['precio'] ?? $preciosPrevios['repuesto'][$rid] ?? $preciosRepuestos[$rid];
-      $items[] = OrdenItem::repuesto($rid, $precio, $r['cantidad']);
+      // El precio anterior solo vale si el repuesto sigue en el mismo modo.
+      $previo = ($previos['repuesto'][$rid]['modo'] ?? null) === $r['modo'] ? $previos['repuesto'][$rid]['precio'] : null;
+      $items[] = match ($r['modo']) {
+        'cliente' => OrdenItem::provistoPorCliente($rid, null, $r['cantidad']),
+        // A costo no se edita a mano: queda el costo del momento en que se marcó.
+        'costo' => OrdenItem::repuesto($rid, $previo ?? $costos[$rid], $r['cantidad'], aCosto: true),
+        default => OrdenItem::repuesto($rid, $r['precio'] ?? $previo ?? $preciosRepuestos[$rid], $r['cantidad']),
+      };
+    }
+    foreach ($piezasCliente as $p) {
+      $items[] = OrdenItem::provistoPorCliente(null, $p['descripcion'], $p['cantidad']);
     }
 
     $datos = $this->validarDetalle($detalle, $equipoId, $id);
@@ -123,7 +172,8 @@ final class OrdenService
     // respuesta deja de valer: lo que aceptó (o rechazó) ya no es lo que dice la orden.
     $anulaRespuesta = isset($actual, $itemsPrevios) && $actual['presupuesto_respuesta'] !== null
       && self::firmaItems($itemsPrevios) !== self::firmaItems(array_map(fn(OrdenItem $i) => [
-        'servicio_id' => $i->servicioId, 'repuesto_id' => $i->repuestoId, 'cantidad' => $i->cantidad, 'precio_unitario' => $i->precioUnitario,
+        'servicio_id' => $i->servicioId, 'repuesto_id' => $i->repuestoId, 'descripcion' => $i->descripcion,
+        'cantidad' => $i->cantidad, 'precio_unitario' => $i->precioUnitario, 'provisto_cliente' => $i->provistoCliente,
       ], $items));
 
     $guardada = $this->ordenes->transaction(function () use ($orden, $anulaRespuesta) {
@@ -170,16 +220,19 @@ final class OrdenService
   }
 
   /**
-   * Representación comparable de los ítems (tipo, id, cantidad y precio), sin importar el orden.
+   * Representación comparable de los ítems (tipo, id o descripción, si lo trae el cliente,
+   * cantidad y precio), sin importar el orden. Pasar un repuesto a costo cambia su precio,
+   * así que también cuenta como cambio.
    *
    * @param list<array<string, mixed>> $items
    */
   private static function firmaItems(array $items): string
   {
     $firma = array_map(fn(array $i) => sprintf(
-      '%s:%d:%.2f:%.2f',
-      $i['repuesto_id'] !== null ? 'r' : 's',
-      (int) ($i['repuesto_id'] ?? $i['servicio_id']),
+      '%s:%s:%d:%.2f:%.2f',
+      $i['servicio_id'] !== null ? 's' : ($i['repuesto_id'] !== null ? 'r' : 'p'),
+      $i['servicio_id'] ?? $i['repuesto_id'] ?? $i['descripcion'],
+      (int) (bool) $i['provisto_cliente'],
       (float) $i['cantidad'],
       (float) $i['precio_unitario'],
     ), $items);
@@ -201,17 +254,23 @@ final class OrdenService
     $proximaFecha = $texto('proximo_mantenimiento_fecha');
     $turnoId = $id === null ? ((int) ($detalle['turno_id'] ?? 0) ?: null) : null;
     $turno = $turnoId !== null ? $this->turnos->find($turnoId) : null;
+    $estadoIngreso = $texto('estado_ingreso');
 
     (new Validator())
-      ->check($accesorios === null || Validator::largo($accesorios, 1, 255), 'Los accesorios no pueden superar los 255 caracteres.')
-      ->check($proximaFecha === null || (Validator::fecha($proximaFecha) && $proximaFecha > date('Y-m-d')), 'La fecha del próximo mantenimiento debe ser futura.')
+      ->check($accesorios === null || Validator::largo($accesorios, 1, 255), 'Los accesorios no pueden superar los 255 caracteres.', 'accesorios')
+      ->check($estadoIngreso === null || mb_strlen($estadoIngreso) <= 1000, 'El estado en que llegó el equipo puede tener hasta 1000 caracteres.', 'estado_ingreso')
+      ->check($proximaFecha === null || (Validator::fecha($proximaFecha) && $proximaFecha > date('Y-m-d')), 'La fecha del próximo mantenimiento debe ser futura.', 'proximo_mantenimiento_fecha')
       ->check($turnoId === null || ($turno !== null && (int) $turno['equipo_id'] === $equipoId), 'El turno no corresponde al equipo de la orden.')
+      // Un turno cancelado, ausente o que ya originó una orden no abre otra.
+      ->check($turno === null || in_array($turno['estado'], [EstadoTurno::Pendiente->value, EstadoTurno::Confirmado->value], true),
+        'Ese turno ya no está pendiente (fue cancelado o ya se recibió el equipo). Recibilo sin turno, desde "Llegó un equipo".')
+      ->check($turnoId === null || !$this->ordenes->existeConTurno($turnoId), 'Ese turno ya tiene una orden abierta.')
       ->validate();
 
     return [
       'falla_reportada' => $texto('falla_reportada'),
       'accesorios' => $accesorios,
-      'estado_ingreso' => $texto('estado_ingreso'),
+      'estado_ingreso' => $estadoIngreso,
       'diagnostico' => $texto('diagnostico'),
       'trabajo_realizado' => $texto('trabajo_realizado'),
       'notas_internas' => $texto('notas_internas'),
@@ -233,9 +292,31 @@ final class OrdenService
       && ($tecnico['estado'] === 'activo' || (int) ($ordenActual['tecnico_id'] ?? 0) === $tecnicoId);
   }
 
+  /** Modo de un ítem guardado (ver MODOS_REPUESTO). */
+  public static function modo(array $item): string
+  {
+    return match (true) {
+      (bool) $item['provisto_cliente'] => 'cliente',
+      (bool) $item['a_costo'] => 'costo',
+      default => 'negocio',
+    };
+  }
+
+  /**
+   * @param list<array<string, mixed>> $piezas
+   * @return list<array{descripcion: string, cantidad: ?float}>
+   */
+  private static function normalizarPiezas(array $piezas): array
+  {
+    return array_map(fn(array $p) => [
+      'descripcion' => trim(preg_replace('/\s+/u', ' ', (string) ($p['descripcion'] ?? '')) ?? ''),
+      'cantidad' => Validator::cantidad((string) ($p['cantidad'] ?? '1')),
+    ], array_values($piezas));
+  }
+
   /**
    * @param array<int, mixed> $items
-   * @return array<int, array{cantidad: ?float, precio: ?float}>
+   * @return array<int, array{cantidad: ?float, precio: ?float, modo: string}>
    */
   private static function normalizarItems(array $items): array
   {
@@ -245,11 +326,12 @@ final class OrdenService
 
     $normalizados = [];
     foreach ($items as $id => $datos) {
-      $cantidad = Validator::importe((string) ($datos['cantidad'] ?? '1'));
+      $cantidad = Validator::cantidad((string) ($datos['cantidad'] ?? '1'));
       $precioTexto = trim((string) ($datos['precio'] ?? ''));
       $normalizados[(int) $id] = [
         'cantidad' => $cantidad,
         'precio' => $precioTexto === '' ? null : (Validator::importe($precioTexto) ?? -1.0),
+        'modo' => (string) ($datos['modo'] ?? '') ?: 'negocio',
       ];
     }
 
@@ -310,13 +392,21 @@ final class OrdenService
     return $this->obtener($id);
   }
 
-  /** Cambia el estado y mueve el stock de repuestos al entrar o salir de "finalizado". */
+  /**
+   * Cambia el estado y mueve el stock de repuestos al entrar o salir de "finalizado".
+   *
+   * Una orden puede abrirse sin ítems (el equipo entra a diagnóstico), pero no terminarse:
+   * lo que se entrega y se cobra tiene que figurar en el detalle.
+   */
   public function cambiarEstado(int $id, string $estado, ?int $usuarioId = null): EstadoOrden
   {
     $this->obtener($id);
 
     $nuevo = EstadoOrden::tryFrom($estado);
     (new Validator())->check($nuevo !== null, 'Estado de orden inválido.')->validate();
+    (new Validator())
+      ->check($nuevo !== EstadoOrden::Finalizado || $this->ordenes->items($id) !== [], 'Para terminar el trabajo, primero cargá en la orden los servicios o repuestos que se hicieron.')
+      ->validate();
 
     // La orden se lee bloqueada dentro de la transacción: dos cambios simultáneos (dos
     // pestañas, o el cliente aceptando mientras un empleado finaliza) se ejecutan uno
@@ -324,6 +414,12 @@ final class OrdenService
     $orden = $this->ordenes->transaction(function () use ($id, $nuevo, $usuarioId) {
       $orden = $this->ordenes->bloquear($id) ?? throw new NotFoundException('Orden no encontrada.');
       $descontado = (bool) $orden['stock_descontado'];
+      // Un equipo entregado no vuelve al local por un cambio de estado (p. ej. desde una pestaña
+      // vieja): primero se deshace la entrega, que borra también la firma de entrega.
+      (new Validator())
+        ->check($orden['entregado_en'] === null || $nuevo === EstadoOrden::Finalizado,
+          'Este equipo ya se entregó. Para volver a abrir el trabajo, primero tocá «Deshacer la entrega» en la orden.')
+        ->validate();
 
       if ($nuevo === EstadoOrden::Finalizado && !$descontado) {
         $this->stock->descontarOrden($id, $usuarioId);

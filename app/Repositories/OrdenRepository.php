@@ -10,7 +10,7 @@ use App\Support\ConsultaPaginada;
 
 final class OrdenRepository extends Repository
 {
-  /** Listado con cliente, equipo y resumen de ítems. */
+  /** Listado con cliente, equipo y resumen de ítems (los repuestos que trajo el cliente, aparte). */
   public function all(): array
   {
     return $this->listado('', []);
@@ -25,7 +25,7 @@ final class OrdenRepository extends Repository
   {
     $saldo = 'o.total - COALESCE((SELECT SUM(pg.monto) FROM pagos pg WHERE pg.orden_id = o.id), 0)';
     $consulta = new ConsultaPaginada(
-      "SELECT o.id, o.total, o.estado, o.created_at, o.presupuesto_respuesta, {$saldo} AS saldo,
+      "SELECT o.id, o.total, o.estado, o.created_at, o.presupuesto_respuesta, o.entregado_en, {$saldo} AS saldo,
               CONCAT(p.apellido, ', ', p.nombre) AS cliente,
               CONCAT(ma.nombre, ' ', mo.nombre, IFNULL(CONCAT(' · S/N ', eq.numero_serie), '')) AS equipo,
               (SELECT CONCAT(pm.apellido, ', ', pm.nombre) FROM empleados em
@@ -33,7 +33,11 @@ final class OrdenRepository extends Repository
               (SELECT GROUP_CONCAT(s.nombre ORDER BY s.nombre SEPARATOR ', ')
                  FROM ordenes_servicios os INNER JOIN servicios s ON s.id = os.servicio_id WHERE os.orden_id = o.id) AS servicios,
               (SELECT GROUP_CONCAT(r.nombre ORDER BY r.nombre SEPARATOR ', ')
-                 FROM ordenes_servicios os INNER JOIN repuestos r ON r.id = os.repuesto_id WHERE os.orden_id = o.id) AS repuestos
+                 FROM ordenes_servicios os INNER JOIN repuestos r ON r.id = os.repuesto_id
+                WHERE os.orden_id = o.id AND os.provisto_cliente = 0) AS repuestos,
+              (SELECT GROUP_CONCAT(COALESCE(r.nombre, os.descripcion) ORDER BY COALESCE(r.nombre, os.descripcion) SEPARATOR ', ')
+                 FROM ordenes_servicios os LEFT JOIN repuestos r ON r.id = os.repuesto_id
+                WHERE os.orden_id = o.id AND os.provisto_cliente = 1) AS repuestos_cliente
          FROM ordenes o
          INNER JOIN equipos eq ON eq.id = o.equipo_id
          INNER JOIN clientes c ON c.id = o.cliente_id
@@ -57,12 +61,41 @@ final class OrdenRepository extends Repository
     $estado = (string) ($peticion['estado'] ?? '');
     $filtros = match ($estado) {
       '' => [],
-      'abiertas' => [["o.estado IN ('pendiente', 'en_proceso')", []]],
+      // Los equipos que están en el local: también los listos que nadie retiró (como el inicio y el tablero).
+      'abiertas' => [["(o.estado IN ('pendiente', 'en_proceso') OR (o.estado = 'finalizado' AND o.entregado_en IS NULL))", []]],
+      'sin_retirar' => [["o.estado = 'finalizado' AND o.entregado_en IS NULL", []]],
+      'entregadas' => [['o.entregado_en IS NOT NULL', []]],
       'con_saldo' => [["o.estado <> 'cancelado' AND {$saldo} > 0", []]],
       default => [['o.estado = ?', [$estado]]],
     };
 
     return $consulta->ejecutar($this->db, $peticion, $filtros);
+  }
+
+  /**
+   * Equipos en el local para el tablero: recibidos, en reparación y listos sin entregar, los
+   * más viejos primero. Con lo mínimo para la tarjeta.
+   *
+   * @return list<array<string, mixed>>
+   */
+  public function tablero(): array
+  {
+    return $this->fetchAll(
+      "SELECT o.id, o.estado, o.total, o.created_at, o.fecha_realizado, o.presupuesto_respuesta, o.presupuesto_enviado,
+              o.total - COALESCE((SELECT SUM(pg.monto) FROM pagos pg WHERE pg.orden_id = o.id), 0) AS saldo,
+              EXISTS (SELECT 1 FROM ordenes_servicios os WHERE os.orden_id = o.id) AS con_items,
+              eq.tipo, eq.numero_serie, ma.nombre AS marca, mo.nombre AS modelo, CONCAT(p.apellido, ', ', p.nombre) AS cliente,
+              (SELECT CONCAT(pm.nombre, ' ', pm.apellido) FROM empleados em
+                 INNER JOIN personas pm ON pm.id = em.persona_id WHERE em.id = o.tecnico_id) AS tecnico
+         FROM ordenes o
+         INNER JOIN equipos eq ON eq.id = o.equipo_id
+         INNER JOIN clientes c ON c.id = o.cliente_id
+         INNER JOIN personas p ON p.id = c.persona_id
+         INNER JOIN marcas ma ON ma.id = eq.marca_id
+         INNER JOIN modelos mo ON mo.id = eq.modelo_id
+        WHERE o.estado IN ('pendiente', 'en_proceso') OR (o.estado = 'finalizado' AND o.entregado_en IS NULL)
+        ORDER BY COALESCE(o.fecha_realizado, o.created_at), o.id"
+    );
   }
 
   /** @return list<array<string, mixed>> */
@@ -77,11 +110,16 @@ final class OrdenRepository extends Repository
     return $this->listado('WHERE o.equipo_id = ?', [$equipoId]);
   }
 
+  public function existeConTurno(int $turnoId): bool
+  {
+    return $this->fetchOne('SELECT 1 FROM ordenes WHERE turno_id = ?', [$turnoId]) !== null;
+  }
+
   /** @return list<array<string, mixed>> */
   private function listado(string $where, array $params): array
   {
     return $this->fetchAll(
-      "SELECT o.id, o.total, o.estado, o.created_at,
+      "SELECT o.id, o.total, o.estado, o.created_at, o.entregado_en,
               o.total - COALESCE((SELECT SUM(pg.monto) FROM pagos pg WHERE pg.orden_id = o.id), 0) AS saldo,
               CONCAT(p.apellido, ', ', p.nombre) AS cliente,
               CONCAT(ma.nombre, ' ', mo.nombre, IFNULL(CONCAT(' · S/N ', eq.numero_serie), '')) AS equipo,
@@ -92,7 +130,10 @@ final class OrdenRepository extends Repository
                 WHERE os.orden_id = o.id) AS servicios,
               (SELECT GROUP_CONCAT(r.nombre ORDER BY r.nombre SEPARATOR ', ')
                  FROM ordenes_servicios os INNER JOIN repuestos r ON r.id = os.repuesto_id
-                WHERE os.orden_id = o.id) AS repuestos
+                WHERE os.orden_id = o.id AND os.provisto_cliente = 0) AS repuestos,
+              (SELECT GROUP_CONCAT(COALESCE(r.nombre, os.descripcion) ORDER BY COALESCE(r.nombre, os.descripcion) SEPARATOR ', ')
+                 FROM ordenes_servicios os LEFT JOIN repuestos r ON r.id = os.repuesto_id
+                WHERE os.orden_id = o.id AND os.provisto_cliente = 1) AS repuestos_cliente
          FROM ordenes o
          INNER JOIN equipos eq ON eq.id = o.equipo_id
          INNER JOIN clientes c ON c.id = o.cliente_id
@@ -123,17 +164,17 @@ final class OrdenRepository extends Repository
     );
   }
 
-  /** Ítems de la orden con su descripción. */
+  /** Ítems de la orden con su descripción: primero los servicios y, al final, lo que trajo el cliente. */
   public function items(int $ordenId): array
   {
     return $this->fetchAll(
-      'SELECT os.servicio_id, os.repuesto_id, os.cantidad, os.precio_unitario, os.costo,
-              s.nombre AS servicio_nombre, r.nombre AS repuesto_nombre
+      'SELECT os.servicio_id, os.repuesto_id, os.descripcion, os.cantidad, os.precio_unitario, os.costo,
+              os.a_costo, os.provisto_cliente, s.nombre AS servicio_nombre, r.nombre AS repuesto_nombre
          FROM ordenes_servicios os
          LEFT JOIN servicios s ON s.id = os.servicio_id
          LEFT JOIN repuestos r ON r.id = os.repuesto_id
         WHERE os.orden_id = ?
-        ORDER BY os.repuesto_id IS NOT NULL, s.nombre, r.nombre',
+        ORDER BY os.servicio_id IS NULL, os.provisto_cliente, s.nombre, COALESCE(r.nombre, os.descripcion)',
       [$ordenId]
     );
   }
@@ -171,11 +212,14 @@ final class OrdenRepository extends Repository
       }
 
       $stmt = $this->db->prepare(
-        'INSERT INTO ordenes_servicios (orden_id, servicio_id, repuesto_id, cantidad, precio_unitario, costo)
-         VALUES (?, ?, ?, ?, ?, ?)'
+        'INSERT INTO ordenes_servicios (orden_id, servicio_id, repuesto_id, descripcion, cantidad, precio_unitario, costo, a_costo, provisto_cliente)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
       );
       foreach ($orden->items as $item) {
-        $stmt->execute([$id, $item->servicioId, $item->repuestoId, $item->cantidad, $item->precioUnitario, $item->subtotal()]);
+        $stmt->execute([
+          $id, $item->servicioId, $item->repuestoId, $item->descripcion, $item->cantidad, $item->precioUnitario, $item->subtotal(),
+          (int) $item->aCosto, (int) $item->provistoCliente,
+        ]);
       }
 
       return $id;
@@ -217,13 +261,18 @@ final class OrdenRepository extends Repository
     return (string) $this->fetchOne('SELECT token FROM ordenes WHERE id = ?', [$id])['token'];
   }
 
-  /** Días que el link del presupuesto sigue abriendo desde su último envío (o desde que se creó la orden). */
+  /**
+   * Días que el link de la orden sigue abriendo desde su último envío (o desde que se creó la
+   * orden) y desde que se terminó: el QR del ticket de entrega sirve para seguir el equipo un
+   * tiempo después de retirarlo.
+   */
   public const DIAS_LINK = 60;
 
   public function idPorToken(string $token): ?int
   {
     $fila = $this->fetchOne(
-      'SELECT id FROM ordenes WHERE token = ? AND COALESCE(presupuesto_enviado, created_at) >= NOW() - INTERVAL ' . self::DIAS_LINK . ' DAY',
+      'SELECT id FROM ordenes WHERE token = ?
+          AND GREATEST(COALESCE(presupuesto_enviado, created_at), COALESCE(fecha_realizado, created_at)) >= NOW() - INTERVAL ' . self::DIAS_LINK . ' DAY',
       [$token]
     );
 
@@ -254,11 +303,11 @@ final class OrdenRepository extends Repository
    * Estado y bandera de stock de la orden, bloqueando la fila hasta el fin de la transacción
    * en curso (debe llamarse dentro de una).
    *
-   * @return array{estado: string, stock_descontado: int|string}|null
+   * @return array{estado: string, stock_descontado: int|string, entregado_en: ?string}|null
    */
   public function bloquear(int $id): ?array
   {
-    return $this->fetchOne('SELECT estado, stock_descontado FROM ordenes WHERE id = ? FOR UPDATE', [$id]);
+    return $this->fetchOne('SELECT estado, stock_descontado, entregado_en FROM ordenes WHERE id = ? FOR UPDATE', [$id]);
   }
 
   public function registrarRespuestaPresupuesto(int $id, string $respuesta): void
@@ -322,11 +371,19 @@ final class OrdenRepository extends Repository
     $this->execute('UPDATE ordenes SET stock_descontado = ? WHERE id = ?', [(int) $descontado, $id]);
   }
 
+  /** Si la orden deja de estar lista (se reabre o se cancela), tampoco queda como entregada. */
   public function setEstado(int $id, EstadoOrden $estado): void
   {
+    $lista = $estado === EstadoOrden::Finalizado;
     $this->execute(
-      'UPDATE ordenes SET estado = ?, fecha_realizado = ? WHERE id = ?',
-      [$estado->value, $estado === EstadoOrden::Finalizado ? date('Y-m-d') : null, $id]
+      'UPDATE ordenes SET estado = ?, fecha_realizado = ?, entregado_en = IF(?, entregado_en, NULL) WHERE id = ?',
+      [$estado->value, $lista ? date('Y-m-d') : null, (int) $lista, $id]
     );
+  }
+
+  /** El cliente retiró el equipo (null: se deshace la entrega). */
+  public function setEntregado(int $id, ?string $cuando): void
+  {
+    $this->execute('UPDATE ordenes SET entregado_en = ? WHERE id = ?', [$cuando, $id]);
   }
 }
