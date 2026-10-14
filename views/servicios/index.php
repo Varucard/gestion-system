@@ -20,8 +20,13 @@
           <label for="precio_base" class="form-label">Precio base *</label>
           <div class="input-group">
             <span class="input-group-text">$</span>
-            <input type="number" class="form-control" id="precio_base" name="precio_base" step="0.01" min="0" required
-              value="<?= e(old('precio_base', $servicio['precio_base'] ?? '')) ?>">
+            <?php
+            // Lo que volvió de un error va tal cual ("10.000" son diez mil); lo de la base, formateado.
+            $anterior = old('precio_base', null);
+            $precioBase = $anterior !== null ? (string) $anterior : (isset($servicio['precio_base']) ? money($servicio['precio_base']) : '');
+            ?>
+            <input type="text" inputmode="decimal" autocomplete="off" class="form-control js-importe" id="precio_base" name="precio_base" data-min="0" required
+              value="<?= e($precioBase) ?>">
           </div>
         </div>
       </div>

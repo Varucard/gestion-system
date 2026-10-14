@@ -42,6 +42,8 @@ final class OrdenController extends Controller
     private readonly \App\Repositories\TurnoRepository $turnos,
     private readonly \App\Services\NotificacionService $notificaciones,
     private readonly \App\Repositories\ComboRepository $combos,
+    private readonly \App\Services\FirmaService $firmas,
+    private readonly \App\Services\Auditor $auditor,
   ) {
     parent::__construct($view, $session);
   }
@@ -49,6 +51,17 @@ final class OrdenController extends Controller
   public function index(Request $request): void
   {
     $this->render('ordenes/index', ['title' => 'Órdenes de servicio', 'estados' => EstadoOrden::cases()]);
+  }
+
+  /** Tablero: los equipos del local en columnas (Recibido · En reparación · Listo), para arrastrar de una a otra. */
+  public function tablero(Request $request): void
+  {
+    $columnas = array_fill_keys([EstadoOrden::Pendiente->value, EstadoOrden::EnProceso->value, EstadoOrden::Finalizado->value], []);
+    foreach ($this->ordenes->tablero() as $orden) {
+      $columnas[$orden['estado']][] = $orden;
+    }
+
+    $this->render('ordenes/tablero', ['title' => 'Tablero del local', 'columnas' => $columnas]);
   }
 
   public function datos(Request $request): void
@@ -62,7 +75,7 @@ final class OrdenController extends Controller
     $turno = ($turnoId = $request->int('turno_id')) ? $this->turnos->find($turnoId) : null;
     $orden = $turno ? ['turno_id' => (int) $turno['id'], 'falla_reportada' => $turno['descripcion']] : null;
 
-    $this->form('Nueva orden de reparación', $orden, ['servicio' => [], 'repuesto' => []], $turno ? (int) $turno['equipo_id'] : (int) $request->int('equipo_id'), true);
+    $this->form('Nueva orden de reparación', $orden, ['servicio' => [], 'repuesto' => [], 'pieza' => []], $turno ? (int) $turno['equipo_id'] : (int) $request->int('equipo_id'), true);
   }
 
   public function store(Request $request): void
@@ -75,16 +88,21 @@ final class OrdenController extends Controller
     $orden = $this->service->obtener($id);
 
     if (!OrdenService::editable(EstadoOrden::from($orden['estado']))) {
-      $this->error('Solo se pueden editar órdenes pendientes o en proceso.');
+      $this->error('Solo se pueden editar órdenes recibidas o en reparación.');
       $this->redirect('/ordenes');
     }
 
-    $detalle = ['servicio' => [], 'repuesto' => []];
+    $detalle = ['servicio' => [], 'repuesto' => [], 'pieza' => []];
     foreach ($this->ordenes->items($id) as $item) {
+      if ($item['descripcion'] !== null) {
+        $detalle['pieza'][] = ['descripcion' => $item['descripcion'], 'cantidad' => (float) $item['cantidad']];
+        continue;
+      }
       $tipo = $item['repuesto_id'] !== null ? 'repuesto' : 'servicio';
       $detalle[$tipo][(int) $item["{$tipo}_id"]] = [
         'cantidad' => (float) $item['cantidad'],
         'precio' => (float) $item['precio_unitario'],
+        'modo' => OrdenService::modo($item),
       ];
     }
 
@@ -102,17 +120,27 @@ final class OrdenController extends Controller
     $orden = $this->service->obtener($id);
     $pagos = $this->pagos->porOrden($id);
 
+    $cliente = $this->clientes->find((int) $orden['cliente_id']);
+
     $this->render('ordenes/show', [
       'title' => "Orden #{$id}",
       'orden' => $orden,
-      'cliente' => $this->clientes->find((int) $orden['cliente_id']),
+      'cliente' => $cliente,
+      'turno' => $orden['turno_id'] ? $this->turnos->find((int) $orden['turno_id']) : null,
       'items' => $this->ordenes->items($id),
+      // Para que el botón "Terminar el trabajo" diga qué va a pasar.
+      'avisaListo' => $this->notificaciones->avisoListoActivo() && !$this->notificaciones->equipoListoAvisado($id) && !empty($cliente['email']),
       'pagos' => $pagos,
       'saldo' => round((float) $orden['total'] - array_sum(array_column($pagos, 'monto')), 2),
       'formasPago' => $this->configuracion->obtener()['trabajo']['forma_pago'],
       'estado' => EstadoOrden::from($orden['estado']),
       'historial' => $this->auditoria->deEntidad('orden', $id),
       'puedeEnviar' => $this->notificaciones->hayCanalDisponible(),
+      'whatsapp' => $this->notificaciones->botonWhatsappManual() && strlen(preg_replace('/\D/', '', (string) $cliente['telefono'])) >= 10,
+      'fotos' => $this->equipos->imagenesDeOrden($id),
+      'firmas' => $this->firmas->deOrden($id),
+      'puedeDeshacerEntrega' => $orden['entregado_en'] !== null && ($this->auth->esAdministrador()
+        || strtotime((string) $orden['entregado_en']) >= time() - \App\Services\EntregaService::MINUTOS_PARA_DESHACER * 60),
     ]);
   }
 
@@ -132,6 +160,36 @@ final class OrdenController extends Controller
     $this->redirect("/ordenes/{$id}");
   }
 
+  /**
+   * Botones de WhatsApp de la orden: abren la conversación con el mensaje y el link armados
+   * (se abren en otra pestaña; si algo falta, esa pestaña muestra la orden con el motivo).
+   */
+  public function whatsapp(Request $request, int $id, string $tipo): void
+  {
+    $this->verifyCsrf($request);
+
+    try {
+      $url = $this->notificaciones->whatsappOrden($id, $tipo);
+    } catch (ValidationException $e) {
+      $this->error($e->getMessage());
+      $this->redirect("/ordenes/{$id}");
+    }
+
+    $nombre = \App\Services\NotificacionService::NOMBRES[$tipo] ?? $tipo;
+    $this->auditor->registrar('whatsapp', 'orden', $id, "Orden #{$id}: se abrió WhatsApp para mandarle al cliente: " . mb_strtolower($nombre));
+    // La pantalla de la orden se recarga sola (app.js) y muestra esto.
+    $this->success("Se abrió WhatsApp con el mensaje ({$nombre}). Tocá «Enviar» allá para que le llegue al cliente." . self::siNoSeAbrio($this->configuracion->seccion('notificaciones')));
+    $this->redirectExterno($url);
+  }
+
+  /** Con la app de escritorio, si no está instalada no pasa nada: se dice qué hacer. */
+  public static function siNoSeAbrio(array $notificaciones): string
+  {
+    return whatsapp_modo($notificaciones) === 'app'
+      ? ' Si no se abrió, instalá WhatsApp en esta computadora o elegí «WhatsApp Web» en Configuración › Avisos.'
+      : '';
+  }
+
   public function cambiarEstado(Request $request, int $id): void
   {
     $this->verifyCsrf($request);
@@ -144,9 +202,26 @@ final class OrdenController extends Controller
       $mensaje .= $this->avisarEquipoListo($id);
     }
 
-    // La pantalla se recarga después del cambio: el mensaje se muestra como aviso.
-    $this->success($mensaje);
-    $this->json(['status' => 'success', 'message' => $mensaje]);
+    // La pantalla se recarga después del cambio: el mensaje se muestra como aviso. Desde los
+    // botones de la ficha, lo que se revierte sin efectos afuera (no "terminar": avisa al
+    // cliente y mueve stock) se hace sin preguntar y se ofrece "Deshacer".
+    $revertible = !$request->isAjax() && $request->string('deshaciendo') !== '1'
+      && $estado !== EstadoOrden::Finalizado && $anterior !== EstadoOrden::Finalizado->value && $anterior !== $estado->value;
+    // Desde el tablero (menú "Mover a…") se vuelve al tablero; desde la ficha, a la orden.
+    $volver = $request->string('volver') === 'tablero' ? 'tablero' : '';
+    if ($request->isAjax()) {
+      // Por AJAX el mensaje va en la respuesta. Se guarda para la próxima pantalla solo si la
+      // página se va a recargar (recargar=1): si no, aparecía después, junto con los de otros cambios.
+      if ($request->string('recargar') === '1') {
+        $this->success($mensaje);
+      }
+      $this->json(['status' => 'success', 'message' => $mensaje]);
+    }
+    $revertible
+      ? $this->hechoConDeshacer($mensaje, "ordenes/{$id}/estado", ['estado' => $anterior, 'volver' => $volver])
+      : $this->success($mensaje);
+    // Botones de la ficha ("Empezar el trabajo", "Terminar el trabajo"): vuelve a la orden.
+    $this->redirect($volver === 'tablero' ? '/ordenes/tablero' : "/ordenes/{$id}");
   }
 
   /** Aviso "equipo listo" al finalizar la orden. Devuelve el texto a sumar al mensaje; si falla, deja un error. */
@@ -161,7 +236,7 @@ final class OrdenController extends Controller
 
       return $canal !== null ? " Le avisamos al cliente por {$canal} que el equipo está listo." : ' El cliente no tiene email para avisarle que está listo.';
     } catch (\RuntimeException $e) {
-      $this->error("No se pudo avisar al cliente que el equipo está listo. {$e->getMessage()}");
+      $this->aviso("El trabajo quedó terminado, pero no se pudo avisar al cliente que el equipo está listo. {$e->getMessage()}");
 
       return '';
     }
@@ -175,6 +250,19 @@ final class OrdenController extends Controller
   public function entrega(Request $request, int $id): void
   {
     $this->documento($request, $id, true);
+  }
+
+  /** Ticket para impresora térmica, con QR (ver DocumentoService::ticket). */
+  public function ticket(Request $request, int $id, string $tipo): void
+  {
+    try {
+      $datos = $this->documentos->ticket($id, $tipo);
+    } catch (ValidationException $e) {
+      $this->error($e->getMessage());
+      $this->redirect("/ordenes/{$id}");
+    }
+
+    echo $this->view->render('tickets/show', [...$datos, 'imprimir' => $request->query('imprimir') === '1'], null);
   }
 
   public function pdf(Request $request, int $id): void
@@ -227,6 +315,7 @@ final class OrdenController extends Controller
         $id,
         $request->int('tecnico_id') ?: null,
         $request->all(),
+        self::piezasCliente((array) $request->input('pieza_descripcion', []), (array) $request->input('pieza_cantidad', [])),
       );
     } catch (ValidationException $e) {
       $this->backWithErrors($id ? "/ordenes/{$id}/editar" : '/ordenes/crear', $e, $request);
@@ -248,7 +337,7 @@ final class OrdenController extends Controller
     $pendiente = 'El cliente tiene que volver a aceptar el presupuesto modificado';
 
     if (!$this->notificaciones->hayCanalDisponible()) {
-      $this->error("{$pendiente}: no hay canal de envío configurado, avisale por otro medio.");
+      $this->aviso("{$pendiente}: no hay canal de envío configurado, avisale por otro medio.");
 
       return;
     }
@@ -257,22 +346,24 @@ final class OrdenController extends Controller
       $canal = $this->notificaciones->enviarPresupuestoModificado($id);
       $canal !== null
         ? $this->success("Orden actualizada. Como el cliente ya había aceptado el presupuesto, le avisamos del cambio por {$canal} para que lo vuelva a aceptar.")
-        : $this->error("{$pendiente}, pero no tiene email cargado: avisale por otro medio.");
+        : $this->aviso("{$pendiente}, pero no tiene email cargado: avisale por otro medio.");
     } catch (\RuntimeException $e) {
-      $this->error("{$pendiente}. {$e->getMessage()}");
+      // También una ValidationException: p. ej., se quitaron todos los ítems y no hay presupuesto que mandar.
+      $this->aviso("{$pendiente}. {$e->getMessage()}");
     }
   }
 
   /**
-   * Arma el mapa id => [cantidad, precio] a partir de los campos del formulario
-   * (servicio_id[], cantidad_servicio[id], precio_servicio[id]).
+   * Arma el mapa id => [cantidad, precio, modo] a partir de los campos del formulario
+   * (servicio_id[], cantidad_servicio[id], precio_servicio[id], modo_repuesto[id]).
    *
-   * @return array<int, array{cantidad: string, precio: string}>
+   * @return array<int, array{cantidad: string, precio: string, modo?: string}>
    */
   private function items(Request $request, string $tipo): array
   {
     $cantidades = (array) $request->input("cantidad_{$tipo}", []);
     $precios = (array) $request->input("precio_{$tipo}", []);
+    $modos = (array) $request->input("modo_{$tipo}", []);
 
     $items = [];
     foreach ($request->intList("{$tipo}_id") as $id) {
@@ -280,14 +371,39 @@ final class OrdenController extends Controller
         'cantidad' => (string) ($cantidades[$id] ?? '1'),
         'precio' => (string) ($precios[$id] ?? ''),
       ];
+      if ($tipo === 'repuesto') {
+        $items[$id]['modo'] = (string) ($modos[$id] ?? 'negocio');
+      }
     }
 
     return $items;
   }
 
   /**
+   * Piezas que trae el cliente y no están en el catálogo (pieza_descripcion[], pieza_cantidad[]).
+   * Las filas que quedaron en blanco se ignoran.
+   *
+   * @param array<mixed> $descripciones
+   * @param array<mixed> $cantidades
+   * @return list<array{descripcion: string, cantidad: string}>
+   */
+  private static function piezasCliente(array $descripciones, array $cantidades): array
+  {
+    $piezas = [];
+    foreach (array_values($descripciones) as $i => $descripcion) {
+      $cantidad = (string) (array_values($cantidades)[$i] ?? '1');
+      if (trim((string) $descripcion) === '' && in_array(trim($cantidad), ['', '1'], true)) {
+        continue;
+      }
+      $piezas[] = ['descripcion' => (string) $descripcion, 'cantidad' => $cantidad];
+    }
+
+    return $piezas;
+  }
+
+  /**
    * @param array<string, mixed>|null $orden
-   * @param array{servicio: array<int, array<string, mixed>>, repuesto: array<int, array<string, mixed>>} $detalle
+   * @param array{servicio: array<int, array<string, mixed>>, repuesto: array<int, array<string, mixed>>, pieza: list<array<string, mixed>>} $detalle
    */
   private function form(string $title, ?array $orden, array $detalle, int $equipoSugerido = 0, bool $nueva = false): void
   {
@@ -307,10 +423,12 @@ final class OrdenController extends Controller
         $detalle[$tipo] = [];
         $cantidades = (array) old("cantidad_{$tipo}", []);
         $precios = (array) old("precio_{$tipo}", []);
+        $modos = (array) old("modo_{$tipo}", []);
         foreach ((array) old("{$tipo}_id", []) as $itemId) {
-          $detalle[$tipo][(int) $itemId] = ['cantidad' => $cantidades[$itemId] ?? 1, 'precio' => $precios[$itemId] ?? ''];
+          $detalle[$tipo][(int) $itemId] = ['cantidad' => $cantidades[$itemId] ?? 1, 'precio' => $precios[$itemId] ?? '', 'modo' => $modos[$itemId] ?? 'negocio'];
         }
       }
+      $detalle['pieza'] = self::piezasCliente((array) old('pieza_descripcion', []), (array) old('pieza_cantidad', []));
     }
 
     $this->render('ordenes/form', [

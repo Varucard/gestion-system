@@ -29,6 +29,23 @@ final class DominioTest extends TestCase
     $this->assertNull($orden->items[2]->servicioId);
   }
 
+  public function testLoQueTraeElClienteNoSumaAlTotal(): void
+  {
+    $orden = new Orden(1, [
+      OrdenItem::servicio(1, 30000),
+      OrdenItem::repuesto(1, 10000, 1, aCosto: true),
+      OrdenItem::provistoPorCliente(2, 'se ignora', 2),
+      OrdenItem::provistoPorCliente(null, 'Termostato', 1),
+    ]);
+
+    $this->assertSame(40000.0, $orden->total());
+    $this->assertTrue($orden->items[1]->aCosto);
+    $this->assertSame(0.0, $orden->items[2]->subtotal());
+    $this->assertNull($orden->items[2]->descripcion); // del catálogo: el nombre sale del repuesto
+    $this->assertTrue($orden->items[3]->esRepuesto());
+    $this->assertSame('Termostato', $orden->items[3]->descripcion);
+  }
+
   public function testElSubtotalMultiplicaCantidadPorPrecio(): void
   {
     $orden = new Orden(1, [

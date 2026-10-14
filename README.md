@@ -9,6 +9,21 @@ kilometraje el **mantenimiento preventivo** por fecha.
 
 ## Funcionalidades
 
+- **"Llegó un equipo"**: con el DNI del cliente se ven sus equipos; si es nuevo, el cliente y el
+  equipo se cargan en la misma pantalla y queda la orden abierta, con la falla, los accesorios, el
+  estado físico, **fotos con la cámara del celular** y la **firma del cliente** en la pantalla. Si el
+  equipo ya está en el local, lo principal es seguir con esa orden (abrir otra se confirma).
+- **Tablero del local** (`/ordenes/tablero`): Recibido · En reparación · Listo, con tarjetas que se
+  arrastran (también en el celular) o se mueven con «Mover a…».
+- **Entrega del equipo** como paso propio, con firma de conformidad; la garantía corre desde la
+  entrega y se puede deshacer.
+- **"Para no olvidarse"** en el inicio: equipos listos sin retirar, presupuestos sin respuesta y
+  mantenimientos por vencer, cada uno con su **WhatsApp con link** ya armado.
+- **Modo mostrador**: en la PC compartida, cada uno entra con un PIN de 4 dígitos.
+- **Tickets para impresora térmica** (58/80 mm) y **QR** al seguimiento en tickets y comprobantes.
+- **Ayuda dentro del sistema**: el manual, con un botón en cada pantalla que abre la parte que la
+  explica. **Primeros pasos** guiados y **encuesta de usabilidad** (SUS) por rondas.
+- **Repuestos a costo y repuestos que trae el cliente** en la orden.
 - **Clientes** con ficha (foto, equipos, historial de órdenes y turnos, deuda) y acceso directo a WhatsApp.
 - **Equipos** con tipo, marca, modelo, número de serie, procesador, memoria, almacenamiento, color,
   observaciones, galería de imágenes e historial.
@@ -39,6 +54,16 @@ kilometraje el **mantenimiento preventivo** por fecha.
 - **App instalable (PWA)** en el celular o la PC, con barra de navegación inferior en pantallas chicas,
   tablas que pliegan sus columnas y aviso de "Sin conexión".
 
+## Diseño
+
+La interfaz usa la identidad de **PC Fighter** (la misma del sitio web): fondo azul noche con las
+líneas de neón, violeta, magenta, azul y cian, botones con el degradado de la marca, títulos en
+*Jersey Sharp* y textos en *Saira Semi Condensed* (servidas desde `public/assets/fonts/`, sin CDN).
+El modo oscuro es el de la marca y es el que se ve por defecto; el claro usa la misma paleta sobre
+blanco. Cada sección conserva su color (Órdenes violeta, Turnos magenta, Clientes verde azulado,
+Equipos azul, Stock cobre, Configuración lavanda). Todos los colores están en
+`public/assets/css/tokens.css`.
+
 ## Stack
 
 | Componente | Versión |
@@ -47,7 +72,8 @@ kilometraje el **mantenimiento preventivo** por fecha.
 | MySQL | 8.4 LTS |
 | phpMyAdmin | 5 |
 | Dompdf (vía Composer) | 3.1 |
-| Bootstrap · jQuery · DataTables (+ Responsive) · Tom Select | 5.3.8 · 3.7.1 · 2.3.8 (3.0.8) · 2.6.2 |
+| Bootstrap · jQuery · DataTables (+ Responsive) · Tom Select · SortableJS | 5.3.8 · 3.7.1 · 2.3.8 (3.0.8) · 2.6.2 · 1.15.6 |
+| chillerlan/php-qrcode | 5 |
 | Symfony Mailer | 7.4 |
 | PHPUnit | 11.5 |
 
@@ -102,14 +128,36 @@ recordatorios de turnos del día hábil siguiente y los avisos de próximo mante
 genera el backup diario y limpia registros y logs viejos. Sin Docker, agregar
 al crontab: `*/15 * * * * cd /ruta/al/proyecto && php bin/tareas.php`.
 
-### WhatsApp Business (preparado, no activo)
+### WhatsApp
 
-Los avisos pasan por canales intercambiables (`app/Notificaciones/`). Hoy está
-activo el email; `WhatsAppCanal` ya tiene la interfaz y sus plantillas de mensaje.
-Para activarlo hace falta una cuenta de WhatsApp Business verificada en Meta, un
-número dedicado, plantillas aprobadas, las variables `WHATSAPP_TOKEN` y
-`WHATSAPP_PHONE_ID`, e implementar el envío en `WhatsAppCanal::enviar()`.
-Mientras tanto, el botón manual "WhatsApp" abre la conversación con el mensaje armado.
+WhatsApp va a mano: los botones abren la conversación (wa.me, WhatsApp Web o la app de
+escritorio, según *Configuración > Avisos*) con el mensaje y el link ya escritos (presupuesto
+para aceptar, equipo listo con el detalle del trabajo, turno para confirmar, mantenimiento), y la
+persona lo envía desde su teléfono. La API de WhatsApp Business se descartó: cobra por mensaje y
+no suma frente al botón con link.
+
+### API de seguimiento (para el sitio web)
+
+`POST /api/v1/seguimiento` devuelve en JSON el estado de **un trabajo**, con el número de ticket
+(el de la orden: `0013`, `#13` o `PCF-0013`) y el DNI del cliente. La usa la sección «Seguí tu
+servicio» del sitio de PC Fighter, que la llama **desde su servidor** (la clave no llega al
+navegador). Se activa con `SEGUIMIENTO_API_KEY` en `.env` (sin clave, la ruta no existe) y respeta
+*Configuración > Portal* (habilitado y si se muestran los montos).
+
+```bash
+curl -X POST https://sistema.ejemplo.com/api/v1/seguimiento \
+  -H "X-Api-Key: $SEGUIMIENTO_API_KEY" -H "X-Cliente-IP: 200.1.2.3" \
+  -H "Content-Type: application/json" -d '{"ticket": "PCF-0013", "dni": "22333444"}'
+```
+
+| Respuesta | Cuándo |
+| --- | --- |
+| `200` | `ticket`, `cliente` (nombre de pila), `equipo`, `ingreso`, `etapa` y `etapas` (recibido → en reparación → listo → entregado, o cancelado), `terminado`, `entregado`, `falla`, `trabajos`, `presupuesto` (`estado` y, si espera respuesta, el `link` para aceptarlo), `montos` (o `null`) y `portal` |
+| `422` | Datos incompletos (`campos` dice cuáles) o ticket y DNI que no coinciden (mismo mensaje si el ticket no existe o es de otro) |
+| `429` | Demasiadas consultas fallidas: el mismo bloqueo del portal (15 minutos tras 10), por la IP de `X-Cliente-IP` |
+| `401` / `404` | Clave inválida / API sin clave o portal deshabilitado |
+
+Nunca devuelve datos de contacto, notas internas ni técnicos asignados.
 
 ### Sin Docker
 
@@ -136,7 +184,7 @@ app/
 ├── Repositories/   Único lugar con SQL (PDO + sentencias preparadas).
 ├── Models/         Entidades del dominio (Persona → Cliente, Equipo, Orden, Turno…).
 ├── Enums/          Estados de órdenes, turnos y clientes/equipos; tipos de equipo.
-├── Notificaciones/ Canales de aviso (email activo, WhatsApp preparado).
+├── Notificaciones/ Canales de aviso automático (email).
 ├── Support/        Validator, ImageUpload, HorarioAtencion, ConsultaPaginada (DataTables en el servidor).
 └── helpers.php     Funciones para vistas: e(), url(), asset(), money(), csrf_field()…
 bin/                migrate.php (migraciones), tareas.php (recordatorios) y usuario.php (recuperar acceso).
@@ -174,6 +222,7 @@ Para cambiar la base de datos se agrega un archivo nuevo en `database/migrations
 | Órdenes | `/ordenes/{id}` (ficha con pagos), `/ordenes/{id}/entrega`, `/ordenes/{id}/entrega/pdf` |
 | Stock | `/repuestos/{id}/stock`, `/proveedores` |
 | Acceso | `/login`, `/perfil/clave` |
+| API (sitio web) | `POST /api/v1/seguimiento` (con `SEGUIMIENTO_API_KEY`) |
 | Públicas (clientes) | `/seguimiento`, `/turno/{token}` (confirmar o cancelar), `/presupuesto/{token}` (aceptar o rechazar) |
 | Búsqueda y agenda | `/buscar?q=`, `/turnos/semana` |
 | Solo administradores | `/configuracion/{seccion}`, `/usuarios`, `/empleados`, `/precios`, `/reportes`, `/auditoria`, `/logs` |
@@ -186,7 +235,7 @@ son `POST` con token CSRF.
 - **Colores en un solo lugar**: `public/assets/css/tokens.css` define cada color con su versión
   clara y oscura. Bootstrap y las librerías leen de ahí, así que el modo oscuro (nativo de
   Bootstrap, `data-bs-theme` en `<html>`) funciona en cualquier componente sin reglas extra.
-- **CSS por capas** (`app.css`): vendor → tokens → base → componentes → librerías → páginas →
+- **CSS por capas** (importadas en `views/partials/head.php`, cada una con su versión): vendor → tokens → base → componentes → librerías → páginas →
   utilidades. Una capa posterior siempre le gana a una anterior: no hace falta `!important`.
   Nada de `style="…"` en las vistas: para un ancho puntual hay clases en `utilidades.css`.
 - **Componentes de vista**: `componentes/campo` (etiqueta + control + ayuda, con `old()`;
@@ -213,7 +262,7 @@ son `POST` con token CSRF.
   no se elimina (se desactiva).
 - **Equipos**: tipo, marca y modelo obligatorios. El número de serie es opcional, pero si se carga
   no puede repetirse. Se activan/desactivan en lugar de borrarse.
-- **Órdenes**: al menos un servicio. Cada ítem tiene cantidad y precio unitario;
+- **Órdenes**: se pueden abrir sin ítems (el equipo entra a diagnóstico), pero no terminarse. Cada ítem tiene cantidad y precio unitario;
   el precio sugerido es el del catálogo y queda congelado en la orden. Solo se
   editan órdenes pendientes o en proceso, y el total no puede quedar por debajo
   de lo pagado. Al finalizar se registra la fecha y se descuenta el stock de los
@@ -277,15 +326,10 @@ scripts/restore.sh storage/backups/db_<fecha>.sql.gz storage/backups/archivos_<f
 
 ## Manual de usuario
 
-El manual está en [`docs/Manual_de_Usuario_Servicio_Tecnico_PC.pdf`](docs/Manual_de_Usuario_Servicio_Tecnico_PC.pdf).
-La fuente es `docs/manual/manual.html`, con las capturas en `docs/manual/img/`. Si cambian
-pantallas o funciones, se edita el HTML, se rehacen las capturas afectadas (1280 px de ancho, a
-escala 1,5, con el navegador en español) y se vuelve a imprimir:
-
-```bash
-cd docs && google-chrome --headless=new --no-pdf-header-footer \
-  --print-to-pdf=Manual_de_Usuario_Servicio_Tecnico_PC.pdf manual/manual.html
-```
+El manual está dentro del sistema (**Ayuda**, `/ayuda`) y en
+[`docs/Manual_de_Usuario_Servicio_Tecnico_PC.pdf`](docs/Manual_de_Usuario_Servicio_Tecnico_PC.pdf).
+La fuente es `docs/manual/manual.html`, con las capturas en `docs/manual/capturas/`. Cómo
+rehacer las capturas y el PDF: [`docs/manual/README.md`](docs/manual/README.md).
 
 ## Datos de prueba
 
@@ -313,6 +357,10 @@ Los tests de integración usan una base descartable (`gestion_test`) y se omiten
 no está definida `DB_TEST_HOST`. En GitHub Actions corren en cada push y PR.
 
 La hoja de ruta con lo hecho y lo pendiente está en [ROADMAP.md](ROADMAP.md).
+
+La versión está en el archivo `VERSION` (sale en el pie, la Ayuda y el PDF del manual). No se
+edita a mano: el workflow `.github/workflows/version.yml` la sube al mergear cada PR a `main`
+(la del medio por defecto; con las etiquetas `version:patch`, `version:major` o `version:none`).
 
 Para depurar con Xdebug: `ENTORNO=desarrollo` y `XDEBUG_MODE=debug` en `.env`,
 reconstruir (`docker compose up -d --build`) y usar la configuración de

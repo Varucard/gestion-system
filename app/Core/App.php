@@ -21,9 +21,23 @@ final class App
   public readonly Container $container;
   public readonly string $basePath;
   public readonly Logger $logger;
+  /** Imágenes subidas (storage/uploads). En los tests, una carpeta temporal. */
+  public readonly string $uploadsPath;
 
-  private function __construct(public readonly string $rootPath)
+  private function __construct(public readonly string $rootPath, ?Container $container = null, ?string $uploadsPath = null)
   {
+    $this->uploadsPath = $uploadsPath ?? $rootPath . '/storage/uploads';
+
+    // Tests de controladores: la aplicación sobre un contenedor ya armado, sin tocar el
+    // entorno (.env, ini, manejador de errores), que es de PHPUnit.
+    if ($container !== null) {
+      $this->container = $container;
+      $this->basePath = '';
+      $this->logger = $container->get(Logger::class);
+
+      return;
+    }
+
     Env::load($rootPath . '/.env');
 
     date_default_timezone_set(Env::get('TZ', 'America/Argentina/Buenos_Aires'));
@@ -61,6 +75,12 @@ final class App
     return self::$instance ??= new self($rootPath);
   }
 
+  /** Para los tests: ver tests/Integration/HttpTestCase. */
+  public static function paraTests(string $rootPath, Container $container, string $uploadsPath): self
+  {
+    return self::$instance = new self($rootPath, $container, $uploadsPath);
+  }
+
   public static function instance(): self
   {
     return self::$instance ?? throw new \LogicException('La aplicación no fue inicializada.');
@@ -82,10 +102,9 @@ final class App
       $usuario = $this->container->get(Auth::class)->user();
       $this->logger->agregarContexto(['usuario' => $usuario['usuario'] ?? null]);
 
-      $router = new Router($this->container);
-      $router->setGuard(fn(string $acceso, Request $r) => $this->guard($acceso, $r));
-      (require $this->rootPath . '/config/routes.php')($router);
-      $router->dispatch($request);
+      $this->despachar($request);
+    } catch (Respuesta $respuesta) {
+      $respuesta->enviar();
     } catch (ValidationException $e) {
       $this->handleValidation($e, $request);
     } catch (NotFoundException $e) {
@@ -97,6 +116,18 @@ final class App
       $message = Env::bool('APP_DEBUG') ? $e->getMessage() : 'Ocurrió un error inesperado. Intentá nuevamente.';
       $this->renderError(500, $message, $request);
     }
+  }
+
+  /**
+   * Busca la ruta y ejecuta su controlador, con el control de acceso. Una redirección o un
+   * JSON salen como Respuesta (excepción) y los errores de negocio, como su excepción.
+   */
+  public function despachar(Request $request): void
+  {
+    $router = new Router($this->container);
+    $router->setGuard(fn(string $acceso, Request $r) => $this->guard($acceso, $r));
+    (require $this->rootPath . '/config/routes.php')($router);
+    $router->dispatch($request);
   }
 
   /** Warnings y notices de PHP van al log (y se siguen mostrando si APP_DEBUG está activo). */
@@ -129,28 +160,37 @@ final class App
 
     if (!$auth->check()) {
       if ($request->isAjax()) {
-        $this->sendJson(['status' => 'error', 'message' => 'La sesión expiró. Volvé a iniciar sesión.'], 401);
-        exit;
+        throw Respuesta::json(['status' => 'error', 'message' => 'La sesión expiró. Volvé a iniciar sesión.'], 401);
       }
 
       if ($request->method === 'GET') {
         $_SESSION['_intended'] = $request->path;
       }
-      header('Location: ' . url('login'), true, 303);
-      exit;
+      throw Respuesta::redireccion(url('login'));
     }
 
     if ($acceso === Router::ACCESO_ADMIN && !$auth->esAdministrador()) {
-      throw new ForbiddenException('Esta sección es solo para administradores.');
+      throw new ForbiddenException($auth->enMostrador()
+        ? 'Desde el mostrador (con PIN) no se entra a esta sección: tocá «Cambiar de usuario» y entrá con tu usuario y contraseña.'
+        : 'Esta sección es solo para administradores.');
     }
   }
 
   /** Validaciones no capturadas por el controlador (p. ej. CSRF): volver atrás con el mensaje. */
   private function handleValidation(ValidationException $e, Request $request): void
   {
+    $this->respuestaDeValidacion($e, $request)->enviar();
+  }
+
+  /**
+   * Cómo se responde un error de negocio que el controlador no atrapó: en AJAX, un JSON 422
+   * con el mensaje; en un formulario, de vuelta a la página anterior (si es de este mismo
+   * sitio) con el mensaje arriba. Pública para que los tests vean lo mismo que el navegador.
+   */
+  public function respuestaDeValidacion(ValidationException $e, Request $request): Respuesta
+  {
     if ($request->isAjax()) {
-      $this->sendJson(['status' => 'error', 'message' => $e->getMessage()], 422);
-      return;
+      return Respuesta::json(['status' => 'error', 'message' => $e->getMessage()], 422);
     }
 
     $session = $this->container->get(Session::class);
@@ -163,7 +203,7 @@ final class App
     $refererHost = parse_url($referer, PHP_URL_HOST) . (parse_url($referer, PHP_URL_PORT) ? ':' . parse_url($referer, PHP_URL_PORT) : '');
     $sameSite = $referer !== '' && $refererHost === ($_SERVER['HTTP_HOST'] ?? '');
 
-    header('Location: ' . ($sameSite ? $referer : url('/')), true, 303);
+    return Respuesta::redireccion($sameSite ? $referer : url('/'));
   }
 
   private function renderError(int $status, string $message, Request $request): void

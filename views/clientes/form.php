@@ -1,11 +1,20 @@
-<?php /** @var array<string, mixed>|null $cliente */ ?>
+<?php /** @var array<string, mixed>|null $cliente @var bool|null $paraTurno */ ?>
+<?php if (!empty($paraTurno)): ?>
+  <div class="alert alert-info mt-3 mb-0"><?= icono('calendar-plus') ?> Turno para un cliente nuevo · paso 1 de 3: los datos del cliente. Después cargás su equipo y volvés al turno.</div>
+<?php elseif (!$cliente): ?>
+  <div class="alert alert-light border mt-3 mb-0 d-flex gap-2 align-items-center">
+    <?= icono('lightbulb') ?>
+    <span>¿El cliente vino con el equipo? Usá <a href="<?= url('recepcion') ?>">Llegó un equipo</a>: cargás el cliente, el equipo y la orden de una sola vez.</span>
+  </div>
+<?php endif; ?>
 <div class="card mt-3">
   <div class="card-header">
     <h4 class="mb-0"><?= $cliente ? 'Editar cliente' : 'Nuevo cliente' ?></h4>
   </div>
   <div class="card-body">
-    <form action="<?= url($cliente ? "clientes/{$cliente['id']}" : 'clientes') ?>" method="POST">
+    <form action="<?= url($cliente ? "clientes/{$cliente['id']}" : 'clientes') ?>" method="POST" id="form_cliente" data-borrador>
       <?= csrf_field() ?>
+      <?php if (!empty($paraTurno)): ?><input type="hidden" name="para" value="turno"><?php endif; ?>
 
       <div class="row mb-3">
         <?= $view->partial('componentes/campo', [
@@ -21,13 +30,14 @@
       <div class="row mb-3">
         <?= $view->partial('componentes/campo', [
           'nombre' => 'dni', 'etiqueta' => 'DNI *', 'valor' => $cliente['dni'] ?? '', 'columna' => 'col-md-6',
-          'atributos' => ['inputmode' => 'numeric', 'pattern' => '[0-9]{6,8}', 'maxlength' => 8, 'required' => true, 'readonly' => $cliente !== null],
+          'atributos' => ['inputmode' => 'numeric', 'pattern' => '[0-9]{6,8}', 'maxlength' => 8, 'required' => true, 'readonly' => $cliente !== null,
+            'data-error' => 'El DNI va solo con números, sin puntos (6 a 8 dígitos).'],
           'ayuda' => $cliente ? 'El DNI no se puede modificar.' : null,
         ]) ?>
         <?= $view->partial('componentes/campo', [
           'nombre' => 'telefono', 'etiqueta' => 'Teléfono *', 'tipo' => 'tel', 'valor' => $cliente['telefono'] ?? '', 'columna' => 'col-md-6',
-          'atributos' => ['inputmode' => 'numeric', 'pattern' => '[0-9]{10}', 'maxlength' => 10, 'placeholder' => '1123456789', 'required' => true],
-          'ayuda' => '10 dígitos: código de área + número, sin 0 ni 15.',
+          'atributos' => ['inputmode' => 'tel', 'maxlength' => 20, 'placeholder' => 'Ej: 11 2345-6789', 'required' => true, 'data-telefono' => true],
+          'ayuda' => 'Con el código de área. Puede ir con 0, con 15, con espacios o guiones.',
         ]) ?>
       </div>
 
@@ -42,8 +52,8 @@
         ]) ?>
       </div>
 
-      <button type="submit" class="btn btn-seccion"><?= icono('check-lg') ?> <?= $cliente ? 'Actualizar cliente' : 'Registrar cliente' ?></button>
-      <a href="<?= url('clientes') ?>" class="btn btn-outline-secondary">Volver al listado</a>
+      <button type="submit" class="btn btn-seccion"><?= icono('check-lg') ?> <?= $cliente ? 'Guardar cambios' : 'Guardar cliente' ?></button>
+      <a href="<?= url($cliente ? "clientes/{$cliente['id']}" : 'clientes') ?>" class="btn btn-outline-secondary">Cancelar</a>
     </form>
   </div>
 </div>

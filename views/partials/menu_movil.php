@@ -3,6 +3,8 @@
  * Menú del celular: barra inferior con los accesos de todos los días y un menú
  * lateral con todo lo demás. Va directo en <body>, fuera de la tarjeta principal:
  * dentro de un elemento con transform, lo "fijo" deja de estar fijo a la pantalla.
+ *
+ * @var string $ayuda  link de Ayuda de esta pantalla (url_ayuda())
  */
 use App\Support\MenuPrincipal;
 
@@ -10,7 +12,7 @@ $seccion = current_section();
 ?>
 <nav class="barra-inferior d-md-none" aria-label="Accesos rápidos">
   <?php foreach (MenuPrincipal::accesos() as [$ruta, $icono, $etiqueta]): ?>
-    <a href="<?= url($ruta) ?>" class="<?= $seccion === $ruta ? 'activo' : '' ?>" <?= $seccion === $ruta ? 'aria-current="page"' : '' ?>>
+    <a href="<?= url($ruta) ?>" class="<?= $seccion === $ruta ? 'activo' : '' ?> <?= $ruta === 'recepcion' ? 'destacado' : '' ?>" <?= $seccion === $ruta ? 'aria-current="page"' : '' ?>>
       <span class="icono"><?= icono($icono) ?></span><?= e($etiqueta) ?>
     </a>
   <?php endforeach; ?>
@@ -25,13 +27,14 @@ $seccion = current_section();
     <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
   </div>
   <div class="offcanvas-body pt-0">
-    <div class="d-flex flex-wrap gap-2 mb-3">
-      <?= $view->partial('partials/acciones_usuario', ['clase' => 'btn btn-outline-secondary']) ?>
+    <?php // Usuario, modo oscuro y Salir arriba, solo con el ícono (el texto queda para lectores de pantalla). ?>
+    <div class="d-flex gap-2 mb-3">
+      <?= $view->partial('partials/acciones_usuario', ['clase' => 'btn btn-outline-secondary', 'soloIcono' => true, 'ayuda' => $ayuda]) ?>
     </div>
     <?php // Categorías plegables: solo queda abierta la de la sección en la que se está. ?>
     <div class="accordion accordion-flush" id="menu_movil_categorias">
-      <?php foreach (MenuPrincipal::secciones(auth()->esAdministrador()) as $i => [$icono, $titulo, , $items]): ?>
-        <?php $abierta = in_array($seccion, array_map(fn($ruta) => explode('/', $ruta)[0], array_keys($items)), true); ?>
+      <?php foreach (MenuPrincipal::secciones(auth()->esAdministrador()) as $i => [$icono, $titulo, , , $items]): ?>
+        <?php $abierta = MenuPrincipal::contiene($items, '', $seccion); ?>
         <div class="accordion-item">
           <h3 class="accordion-header">
             <button class="accordion-button <?= $abierta ? '' : 'collapsed' ?>" type="button" data-bs-toggle="collapse"

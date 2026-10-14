@@ -82,7 +82,8 @@ final class PagoRepository extends Repository
   {
     return $this->fetchAll(
       "SELECT c.id, CONCAT(p.apellido, ', ', p.nombre) AS cliente, c.telefono,
-              COUNT(*) AS ordenes, SUM(o.total - COALESCE(pg.pagado, 0)) AS saldo
+              COUNT(*) AS ordenes, SUM(o.total - COALESCE(pg.pagado, 0)) AS saldo,
+              MIN(o.id) AS orden_a_cobrar
          FROM ordenes o
          INNER JOIN clientes c ON c.id = o.cliente_id
          INNER JOIN personas p ON p.id = c.persona_id

@@ -42,6 +42,17 @@ function importe(mixed $amount): string
   return '<span class="importe">$&nbsp;' . money($amount) . '</span>';
 }
 
+/**
+ * Versión del sistema (archivo VERSION de la raíz). No se edita a mano: la sube el workflow
+ * .github/workflows/version.yml al mergear cada PR a main.
+ */
+function version_app(): string
+{
+  static $version = null;
+
+  return $version ??= trim((string) @file_get_contents(App::instance()->rootPath . '/VERSION')) ?: 'sin versión';
+}
+
 /** Ícono de Bootstrap Icons (https://icons.getbootstrap.com), decorativo: icono('check-lg'). */
 function icono(string $nombre): string
 {
@@ -81,6 +92,14 @@ function old(string $key, mixed $default = ''): mixed
   return session()->old($key, $default);
 }
 
+/** Error del servidor para un campo del formulario que volvió con errores (ver Controller::backWithErrors). */
+function error_campo(string $nombre): ?string
+{
+  $campos = json_decode((string) (session()->messages()['campos'][0] ?? '[]'), true) ?: [];
+
+  return $campos[rtrim($nombre, '[]')] ?? null;
+}
+
 function csrf_field(): string
 {
   return '<input type="hidden" name="_token" value="' . e(session()->csrfToken()) . '">';
@@ -100,9 +119,51 @@ function current_section(): string
   return explode('/', trim($path, '/'))[0] ?? '';
 }
 
+/** Ruta actual sin la carpeta de instalación ni la query: "ordenes/12". */
+function current_section_path(): string
+{
+  $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+
+  return trim(substr($path, strlen(App::instance()->basePath)), '/');
+}
+
+/**
+ * Ayuda de la pantalla actual: el manual abierto en la parte que la explica, con la pantalla
+ * de la que se viene (desde + su título) para el botón "Volver" de la Ayuda.
+ */
+function url_ayuda(string $pantalla = ''): string
+{
+  $uri = $_SERVER['REQUEST_URI'] ?? '/';
+  $ruta = substr(parse_url($uri, PHP_URL_PATH) ?: '/', strlen(App::instance()->basePath));
+
+  if (current_section() === 'ayuda') {
+    return url('ayuda');
+  }
+
+  $destino = \App\Support\Manual::destinoDe($ruta);
+
+  return url('ayuda') . '?' . http_build_query(['desde' => $uri, 'pantalla' => $pantalla])
+    . ($destino !== null ? '#' . $destino : '');
+}
+
 function auth(): \App\Core\Auth
 {
   return App::instance()->container->get(\App\Core\Auth::class);
+}
+
+/**
+ * Descripción de un ítem de la orden (fila de OrdenRepository::items) para mostrar: el
+ * servicio, o el repuesto (del catálogo o descrito a mano), aclarando si lo trae el cliente.
+ */
+function item_orden(array $item): string
+{
+  if ($item['servicio_id'] !== null) {
+    return (string) $item['servicio_nombre'];
+  }
+
+  $nombre = 'Repuesto: ' . ($item['repuesto_nombre'] ?? $item['descripcion']);
+
+  return $item['provisto_cliente'] ? "{$nombre} (provisto por el cliente)" : $nombre;
 }
 
 /** Cantidad sin decimales innecesarios: 2 → "2", 1.5 → "1,5". */
@@ -126,11 +187,57 @@ function telefono_internacional(string $telefono, string $codigoPais = '54'): st
   return $digitos;
 }
 
-/** Link de WhatsApp (wa.me) con un mensaje opcional ya escrito. */
-function whatsapp_url(string $telefono, string $mensaje = '', string $codigoPais = '54'): string
+/**
+ * Link de WhatsApp con un mensaje opcional ya escrito. Según cómo se abra (ver whatsapp_modo()):
+ *   wame  https://wa.me/… — el link universal: en el celular abre la app; en la PC muestra
+ *         primero una página que pregunta si seguir en la app o en WhatsApp Web.
+ *   web   https://web.whatsapp.com/send — WhatsApp Web directo (con la sesión del navegador).
+ *   app   whatsapp://send — la app de escritorio instalada, sin pasar por el navegador.
+ */
+function whatsapp_url(string $telefono, string $mensaje = '', string $codigoPais = '54', string $modo = 'wame'): string
 {
-  return 'https://wa.me/' . telefono_internacional($telefono, $codigoPais)
-    . ($mensaje !== '' ? '?text=' . rawurlencode($mensaje) : '');
+  $numero = telefono_internacional($telefono, $codigoPais);
+  $texto = $mensaje !== '' ? rawurlencode($mensaje) : '';
+
+  return match ($modo) {
+    'web' => "https://web.whatsapp.com/send?phone={$numero}" . ($texto !== '' ? "&text={$texto}" : ''),
+    'app' => "whatsapp://send?phone={$numero}" . ($texto !== '' ? "&text={$texto}" : ''),
+    default => "https://wa.me/{$numero}" . ($texto !== '' ? "?text={$texto}" : ''),
+  };
+}
+
+/** ¿El pedido viene de un celular o una tablet? (Ahí wa.me abre la app directo.) */
+function es_celular(?string $userAgent = null): bool
+{
+  return (bool) preg_match('/Android|iPhone|iPad|iPod|Mobile/i', $userAgent ?? (string) ($_SERVER['HTTP_USER_AGENT'] ?? ''));
+}
+
+/**
+ * Cómo se abre WhatsApp en este equipo: en el celular, siempre wa.me (abre la app); en la PC,
+ * lo elegido en Configuración › Avisos (por defecto, WhatsApp Web directo).
+ *
+ * @param array<string, mixed> $notificaciones la sección "notificaciones" de la configuración
+ */
+function whatsapp_modo(array $notificaciones, ?string $userAgent = null): string
+{
+  return es_celular($userAgent) ? 'wame' : (string) ($notificaciones['whatsapp_abrir'] ?? 'web');
+}
+
+/**
+ * Dónde se abre el link. La app de escritorio, sin abrir pestañas (la página queda donde
+ * estaba). WhatsApp Web y wa.me, en una pestaña nueva: web.whatsapp.com manda
+ * Cross-Origin-Opener-Policy: same-origin, así que el navegador no deja reutilizar una pestaña
+ * con nombre (target="whatsapp") y cada clic abre otra.
+ */
+function whatsapp_target(string $modo): string
+{
+  return $modo === 'app' ? '_self' : '_blank';
+}
+
+/** Target de los botones de WhatsApp en las vistas (con la configuración del sistema). */
+function whatsapp_target_actual(): string
+{
+  return whatsapp_target(whatsapp_modo(App::instance()->container->get(\App\Services\ConfiguracionService::class)->seccion('notificaciones')));
 }
 
 /**

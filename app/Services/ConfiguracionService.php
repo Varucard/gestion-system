@@ -23,7 +23,7 @@ final class ConfiguracionService
   /** Variables que se pueden usar en las plantillas de mensajes, según de qué se trate el aviso. */
   public const VARIABLES_GENERALES = ['cliente', 'equipo', 'negocio', 'direccion', 'telefono', 'link_seguimiento'];
   public const VARIABLES_TURNO = ['fecha', 'hora', 'link_turno'];
-  public const VARIABLES_ORDEN = ['numero', 'total', 'saldo', 'link_presupuesto', 'fecha_proximo'];
+  public const VARIABLES_ORDEN = ['numero', 'total', 'saldo', 'aviso_saldo', 'link_presupuesto', 'link_estado', 'fecha_proximo'];
 
   /**
    * Variables válidas para una plantilla: las de turnos (confirmación y recordatorio) o las
@@ -67,6 +67,29 @@ final class ConfiguracionService
     }
 
     return $this->cache = $config;
+  }
+
+  /** ¿Esa sección se guardó alguna vez desde la pantalla de configuración? (Primeros pasos.) */
+  public function fueGuardada(string $seccion): bool
+  {
+    return isset($this->guardada()[$seccion]);
+  }
+
+  /**
+   * Datos internos del sistema que no se editan en Configuración (p. ej. que se ocultaron los
+   * primeros pasos). Van en el mismo archivo, en "_estado".
+   */
+  public function estado(string $clave): mixed
+  {
+    return $this->guardada()['_estado'][$clave] ?? null;
+  }
+
+  public function recordar(string $clave, mixed $valor): void
+  {
+    $guardada = $this->guardada();
+    $guardada['_estado'][$clave] = $valor;
+    $this->escribir($guardada);
+    $this->cache = null;
   }
 
   /** Descarta los valores en memoria para volver a leer el archivo. */
@@ -168,10 +191,17 @@ final class ConfiguracionService
       'forma_pago' => self::lineas($input['forma_pago'] ?? ''),
       'observaciones' => self::lineas($input['observaciones'] ?? ''),
       'mensaje_legal' => trim((string) ($input['mensaje_legal'] ?? '')),
+      'garantia_repuestos_cliente' => trim((string) ($input['garantia_repuestos_cliente'] ?? '')),
       'aceptar_inicia_trabajo' => !empty($input['aceptar_inicia_trabajo']),
+      'alerta_listo_dias' => $dias('alerta_listo_dias'),
+      'alerta_presupuesto_dias' => $dias('alerta_presupuesto_dias'),
+      'ticket_ancho' => (int) ($input['ticket_ancho'] ?? 80),
     ];
 
     (new Validator())
+      ->check($trabajo['alerta_listo_dias'] >= 1 && $trabajo['alerta_listo_dias'] <= 60, 'Los días para avisar de un equipo sin retirar deben estar entre 1 y 60.')
+      ->check($trabajo['alerta_presupuesto_dias'] >= 1 && $trabajo['alerta_presupuesto_dias'] <= 60, 'Los días para avisar de un presupuesto sin respuesta deben estar entre 1 y 60.')
+      ->check(in_array($trabajo['ticket_ancho'], [58, 80], true), 'El ancho del ticket debe ser 58 u 80 mm.')
       ->check($rango($trabajo['validez']), 'La validez debe estar entre 1 y 365 días.')
       ->check($rango($trabajo['garantia']), 'La garantía debe estar entre 1 y 365 días.')
       ->check($rango($trabajo['tiempo_estimado']), 'El tiempo estimado debe estar entre 1 y 365 días.')
@@ -262,6 +292,7 @@ final class ConfiguracionService
     return [
       'canales' => $canales,
       'boton_whatsapp_manual' => !empty($input['boton_whatsapp_manual']),
+      'whatsapp_abrir' => in_array($input['whatsapp_abrir'] ?? '', ['web', 'app', 'wame'], true) ? $input['whatsapp_abrir'] : 'web',
       'codigo_pais' => $codigo,
       'avisar_negocio' => !empty($input['avisar_negocio']),
       'avisar_listo' => !empty($input['avisar_listo']),
@@ -289,6 +320,11 @@ final class ConfiguracionService
         ));
     }
 
+    // Sin el link, el mensaje no sirve para lo que se manda: confirmar o aceptar.
+    foreach (['whatsapp_confirmacion' => '{link_turno}', 'whatsapp_presupuesto' => '{link_presupuesto}', 'whatsapp_presupuesto_modificado' => '{link_presupuesto}',
+              'whatsapp_presupuesto_recordatorio' => '{link_presupuesto}'] as $campo => $link) {
+      $v->check(str_contains($mensajes[$campo], $link), sprintf('El WhatsApp "%s" debe incluir %s.', $campo, $link));
+    }
     $v->check(
       str_contains($mensajes['email_confirmacion'], '{link_turno}'),
       'El email de confirmación debe incluir {link_turno} para que el cliente pueda confirmar.'

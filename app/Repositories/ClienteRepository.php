@@ -30,16 +30,18 @@ final class ClienteRepository extends Repository
   /** @param array<string, mixed> $peticion parámetros de DataTables; filtro opcional: estado */
   public function paginar(array $peticion): array
   {
+    // Columnas del listado: Cliente (apellido, nombre y DNI), Teléfono, Saldo, Estado, Acciones.
+    // Las últimas no se muestran: solo suman campos a la búsqueda.
     $consulta = new ConsultaPaginada(self::SELECT, [
-      ['sql' => 'p.nombre', 'buscar' => true],
       ['sql' => 'p.apellido', 'buscar' => true],
-      ['sql' => 'p.dni', 'buscar' => true],
       ['sql' => 'c.telefono', 'buscar' => true],
-      ['sql' => 'p.email', 'buscar' => true],
-      ['sql' => 'c.direccion', 'buscar' => true],
       ['sql' => null],
       ['sql' => 'c.estado'],
       ['sql' => null],
+      ['sql' => 'p.nombre', 'buscar' => true],
+      ['sql' => 'p.dni', 'buscar' => true],
+      ['sql' => 'p.email', 'buscar' => true],
+      ['sql' => 'c.direccion', 'buscar' => true],
     ], 'p.apellido, p.nombre');
 
     $estado = (string) ($peticion['estado'] ?? '');

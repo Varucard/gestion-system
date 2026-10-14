@@ -44,10 +44,18 @@ final class Auditor
         PHP_SAPI === 'cli' ? null : \App\Core\Request::ip(),
       );
     } catch (Throwable $e) {
-      // La auditoría nunca debe impedir la operación principal.
+      // Dentro de una transacción el error no se traga: si MySQL la deshizo (p. ej., un
+      // deadlock), seguir de largo confirmaría la operación a medias. Que se deshaga entera.
+      if ($this->auditoria->enTransaccion()) {
+        throw $e;
+      }
+      // Fuera de una transacción, la auditoría nunca debe impedir la operación principal.
       $this->logger->error('No se pudo registrar la auditoría', ['exception' => $e, 'accion' => $accion]);
     }
 
-    $this->logger->info($descripcion, ['accion' => $accion, 'entidad' => $entidad, 'id' => $entidadId] + ($datos ? ['datos' => $datos] : []));
+    // La línea del log de texto, recién cuando se confirma: si la operación se deshace (p. ej.,
+    // "Llegó un equipo" con un dato mal), no queda escrito "Cliente creado" de algo que no pasó.
+    $contexto = ['accion' => $accion, 'entidad' => $entidad, 'id' => $entidadId] + ($datos ? ['datos' => $datos] : []);
+    $this->auditoria->alConfirmar(fn() => $this->logger->info($descripcion, $contexto));
   }
 }

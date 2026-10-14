@@ -38,17 +38,17 @@ final class RepuestoService
     $precio = Validator::importe((string) ($input['precio'] ?? ''));
     $costoTexto = trim((string) ($input['precio_costo'] ?? ''));
     $costo = $costoTexto === '' ? null : Validator::importe($costoTexto);
-    $minimo = Validator::importe((string) ($input['stock_minimo'] ?? '0') ?: '0');
+    $minimo = Validator::cantidad((string) ($input['stock_minimo'] ?? '0') ?: '0');
     $proveedorId = (int) ($input['proveedor_id'] ?? 0) ?: null;
     $descripcion = Validator::nullable((string) ($input['descripcion'] ?? ''));
 
     (new Validator())
-      ->check(Validator::largo($nombre, 2, 150), 'El nombre del repuesto debe tener entre 2 y 150 caracteres.')
-      ->check($codigo === null || Validator::largo($codigo, 1, 50), 'El código no puede superar los 50 caracteres.')
-      ->check($precio !== null, 'El precio debe ser un número mayor o igual a 0.')
-      ->check($costoTexto === '' || $costo !== null, 'El precio de costo debe ser un número mayor o igual a 0.')
-      ->check($minimo !== null, 'El stock mínimo debe ser un número mayor o igual a 0.')
-      ->check($proveedorId === null || $this->proveedores->find($proveedorId) !== null, 'El proveedor seleccionado no existe.')
+      ->check(Validator::largo($nombre, 2, 150), 'El nombre del repuesto debe tener entre 2 y 150 caracteres.', 'nombre')
+      ->check($codigo === null || Validator::largo($codigo, 1, 50), 'El código no puede superar los 50 caracteres.', 'codigo')
+      ->check($precio !== null, 'El precio debe ser un número mayor o igual a 0.', 'precio')
+      ->check($costoTexto === '' || $costo !== null, 'El precio de costo debe ser un número mayor o igual a 0.', 'precio_costo')
+      ->check($minimo !== null, 'El stock mínimo debe ser un número mayor o igual a 0.', 'stock_minimo')
+      ->check($proveedorId === null || $this->proveedores->find($proveedorId) !== null, 'El proveedor seleccionado no existe.', 'proveedor_id')
       ->validate();
 
     try {

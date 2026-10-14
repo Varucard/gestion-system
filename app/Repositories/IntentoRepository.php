@@ -33,6 +33,15 @@ final class IntentoRepository extends Repository
     return (int) $fila['clave_ip'] >= $porClaveEIp || (int) $fila['ip'] >= $porIp || (int) $fila['clave'] >= $porClave;
   }
 
+  /** Intentos fallidos recientes de esa clave desde esa IP. */
+  public function contar(string $ambito, string $clave, string $ip, int $minutos): int
+  {
+    return (int) $this->fetchOne(
+      'SELECT COUNT(*) AS n FROM intentos WHERE ambito = ? AND clave = ? AND ip = ? AND created_at > NOW() - INTERVAL ? MINUTE',
+      [$ambito, $clave, $ip, $minutos]
+    )['n'];
+  }
+
   public function limpiar(string $ambito, string $clave): void
   {
     $this->execute('DELETE FROM intentos WHERE ambito = ? AND clave = ?', [$ambito, $clave]);

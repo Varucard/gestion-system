@@ -56,6 +56,38 @@ td.col-acciones .btn {
   min-width: 120px;
 }
 
+/* El día de hoy: encabezado resaltado (se lee en claro y en oscuro) y su columna apenas teñida. */
+.agenda-semanal th.agenda-hoy {
+  background-color: var(--agenda-hoy-fondo);
+  color: var(--agenda-hoy-texto);
+  box-shadow: inset 0 3px 0 var(--app-primario);
+}
+
+.agenda-hoy-badge {
+  background-color: var(--app-primario);
+  color: var(--app-sobre-color);
+}
+
+.agenda-semanal td.agenda-hoy-columna {
+  background-color: var(--agenda-hoy-columna);
+}
+
+/* "+ libre": toda la franja libre se puede tocar (antes era un link de 37×15 px). */
+.agenda-libre {
+  display: block;
+  padding: 0.4rem 0.25rem;
+  border-radius: var(--app-radio);
+  color: var(--app-texto-suave);
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.agenda-libre:hover,
+.agenda-libre:focus-visible {
+  background-color: var(--agenda-hoy-fondo);
+  color: var(--agenda-hoy-texto);
+}
+
 /* La columna de la hora queda fija al desplazar la semana hacia los costados. */
 .agenda-semanal th:first-child {
   position: sticky;
@@ -82,7 +114,7 @@ td.col-acciones .btn {
 
 .seguimiento-pasos span.hecho {
   background: var(--app-exito);
-  color: #fff;
+  color: var(--app-sobre-color);
 }
 
 /* --- Pantallas angostas (login, portal) --- */
@@ -102,3 +134,408 @@ td.col-acciones .btn {
   background-color: var(--fondo);
   color: var(--texto);
 }
+
+/* --- Ayuda: el manual de usuario (views/ayuda). El HTML viene de docs/manual/manual.html,
+   que trae sus propios estilos para A4: acá se rehacen con los colores de la app, así el
+   manual también se lee en modo oscuro y respeta A−/A+. --- */
+.ayuda-volver {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .5rem 0;
+  margin-bottom: .5rem;
+  background: var(--bs-body-bg);
+  border-bottom: 1px solid var(--app-borde);
+}
+
+/* Con la barra de "Volver" fija arriba, el índice y los títulos quedan debajo de ella. */
+.ayuda {
+  --ayuda-arriba: 1rem;
+}
+
+.ayuda-volver ~ .ayuda {
+  --ayuda-arriba: 3.75rem;
+}
+
+.ayuda-indice {
+  position: sticky;
+  top: var(--ayuda-arriba);
+  max-height: calc(100vh - var(--ayuda-arriba) - 1rem);
+  overflow-y: auto;
+}
+
+.ayuda-indice ol li a {
+  display: block;
+  padding: .2rem .4rem;
+  border-radius: var(--app-radio);
+  text-decoration: none;
+}
+
+.ayuda-indice ol li a:hover,
+.ayuda-indice ol li a.activo {
+  background: var(--app-superficie-hundida);
+}
+
+.ayuda-indice ol li a.activo {
+  font-weight: 600;
+}
+
+.manual {
+  max-width: 50rem;
+  line-height: 1.6;
+}
+
+.manual-capitulo {
+  scroll-margin-top: var(--ayuda-arriba);
+  padding-bottom: 1.5rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid var(--app-borde);
+}
+
+.manual h2 {
+  font-size: 1.6rem;
+  padding-bottom: .4rem;
+  margin-bottom: 1rem;
+  border-bottom: 3px solid var(--app-aviso);
+}
+
+.manual h3 {
+  font-size: 1.2rem;
+  margin: 1.6rem 0 .5rem;
+  scroll-margin-top: var(--ayuda-arriba);
+}
+
+/* La parte a la que llevó el botón de Ayuda se marca un momento, para ver dónde se cayó. */
+.manual h3:target {
+  animation: ayuda-destino 2.5s ease-out;
+  border-radius: var(--app-radio);
+}
+
+@keyframes ayuda-destino {
+  0%, 40% { background: var(--bs-warning-bg-subtle); box-shadow: 0 0 0 .4rem var(--bs-warning-bg-subtle); }
+  100% { background: transparent; box-shadow: 0 0 0 .4rem transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .manual h3:target {
+    animation: none;
+    background: var(--bs-warning-bg-subtle);
+  }
+}
+
+.manual .menu,
+.manual .boton {
+  display: inline-block;
+  border: 1px solid var(--app-borde);
+  border-radius: var(--app-radio);
+  padding: 0 .35rem;
+  font-weight: 600;
+  font-size: .9em;
+  white-space: nowrap;
+  background: var(--app-superficie-hundida);
+}
+
+.manual .boton {
+  border-color: var(--app-aviso);
+  background: var(--bs-warning-bg-subtle);
+}
+
+.manual kbd {
+  background: var(--app-superficie);
+  color: var(--app-texto);
+  border: 1px solid var(--app-borde-control);
+  border-bottom-width: 2px;
+  font-weight: 700;
+}
+
+.manual .nota {
+  border-left: 4px solid;
+  border-radius: var(--app-radio);
+  padding: .6rem .9rem;
+  margin: 1rem 0;
+}
+
+.manual .nota strong.titulo {
+  display: block;
+  margin-bottom: .2rem;
+}
+
+.manual .nota > :last-child {
+  margin-bottom: 0;
+}
+
+.manual .consejo  { background: var(--bs-success-bg-subtle); border-color: var(--app-exito); }
+.manual .atencion { background: var(--bs-warning-bg-subtle); border-color: var(--app-aviso); }
+.manual .admin    { background: var(--bs-primary-bg-subtle); border-color: var(--app-primario); }
+.manual .nuevo    { background: var(--bs-warning-bg-subtle); border-color: var(--app-aviso); }
+
+.manual ol.pasos {
+  list-style: none;
+  counter-reset: paso;
+  padding-left: 0;
+}
+
+.manual ol.pasos > li {
+  counter-increment: paso;
+  position: relative;
+  padding-left: 2rem;
+  margin-bottom: .4rem;
+}
+
+.manual ol.pasos > li::before {
+  content: counter(paso);
+  position: absolute;
+  left: 0;
+  top: .1rem;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  background: var(--app-aviso);
+  color: var(--app-sobre-aviso);
+  font-weight: 700;
+  font-size: .8rem;
+  text-align: center;
+  line-height: 1.4rem;
+}
+
+.manual table {
+  width: 100%;
+  margin: .5rem 0 1rem;
+  font-size: .95em;
+}
+
+.manual th {
+  background: var(--app-superficie-hundida);
+  text-align: left;
+  padding: .4rem .6rem;
+}
+
+.manual td {
+  border-bottom: 1px solid var(--app-borde);
+  padding: .4rem .6rem;
+  vertical-align: top;
+}
+
+.manual td:first-child {
+  font-weight: 600;
+  width: 32%;
+}
+
+/* En el celular, las tablas se deslizan de costado en vez de romper el ancho. */
+@media (max-width: 575.98px) {
+  .manual table {
+    display: block;
+    overflow-x: auto;
+  }
+}
+
+.manual figure {
+  margin: 1rem 0 1.25rem;
+  text-align: center;
+}
+
+.manual figure img {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--app-borde);
+  border-radius: var(--app-radio);
+  box-shadow: 0 2px 6px var(--app-sombra);
+}
+
+/* Las del celular van con alto fijo y el ancho sale de la proporción (width/height del
+   <img>): con "width: auto" y sin alto, una captura que todavía no cargó mide cero y, al
+   cargar, empuja el texto y el link a un capítulo termina en otro. */
+.manual figure.celular img,
+.manual figure.par img {
+  height: min(32rem, 70vh);
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.manual figure.par {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.manual figcaption {
+  color: var(--app-texto-suave);
+  font-style: italic;
+  font-size: .9em;
+  margin-top: .3rem;
+}
+
+.manual .etapas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .3rem;
+  margin: .5rem 0 1rem;
+}
+
+.manual .etapas span {
+  flex: 1;
+  text-align: center;
+  padding: .4rem;
+  border-radius: var(--app-radio);
+  font-weight: 600;
+  background: var(--app-superficie-hundida);
+}
+
+.manual .etapas span.a { background: var(--bs-primary-bg-subtle); }
+.manual .etapas span.b { background: var(--bs-info-bg-subtle); }
+.manual .etapas span.c { background: var(--bs-success-bg-subtle); }
+
+/* === Tablero del local (ordenes/tablero) === */
+.tablero {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: stretch; /* las tres columnas del mismo alto: se puede soltar en cualquier parte */
+}
+
+.tablero-columna {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--app-borde);
+  border-top: 4px solid var(--estado-color, var(--app-borde));
+  border-radius: var(--app-radio);
+  background-color: var(--app-superficie-hundida);
+  padding: 0.75rem;
+}
+
+.tablero-columna.estado-pendiente   { --estado-color: var(--estado-pendiente); }
+.tablero-columna.estado-en_proceso  { --estado-color: var(--estado-en-proceso); }
+.tablero-columna.estado-finalizado  { --estado-color: var(--estado-finalizado); }
+
+.tablero-encabezado {
+  margin-bottom: 0.75rem;
+}
+
+.tablero-cantidad {
+  background-color: var(--app-superficie);
+  color: var(--app-texto);
+  border: 1px solid var(--app-borde);
+}
+
+.tablero-lista {
+  display: flex;
+  flex-direction: column;
+  flex: 1; /* ocupa toda la columna: soltar debajo de la última tarjeta también vale */
+  gap: 0.6rem;
+  min-height: 6rem; /* una columna vacía también recibe tarjetas */
+}
+
+.tablero-vacia {
+  display: none;
+  padding: 1rem 0.5rem;
+  text-align: center;
+}
+
+.tablero-lista:not(:has(.tarjeta-orden)) .tablero-vacia {
+  display: block;
+}
+
+.tarjeta-orden {
+  background-color: var(--app-superficie);
+  border: 1px solid var(--app-borde);
+  border-radius: var(--app-radio);
+  padding: 0.6rem 0.75rem;
+  box-shadow: 0 1px 2px var(--app-sombra);
+  cursor: grab;
+}
+
+.tarjeta-elegida {
+  cursor: grabbing;
+}
+
+.tarjeta-fantasma {
+  opacity: 0.4;
+}
+
+/* "Mover a…": opciones altas para el dedo. */
+.mover-a .dropdown-item {
+  padding-block: 0.65rem;
+}
+
+/* "Mover a…": no se ofrece la etapa en la que ya está, ni "Listo" sin trabajos cargados. */
+.tarjeta-orden[data-estado="pendiente"] .mover-a[data-destino="pendiente"],
+.tarjeta-orden[data-estado="en_proceso"] .mover-a[data-destino="en_proceso"],
+.tarjeta-orden[data-estado="finalizado"] .mover-a[data-destino="finalizado"],
+.tarjeta-orden[data-sin-items] .mover-a[data-destino="finalizado"] {
+  display: none;
+}
+
+.chip-tarjeta {
+  background-color: var(--app-superficie-hundida);
+  color: var(--app-texto);
+  border: 1px solid var(--app-borde);
+  font-weight: 500;
+}
+
+.chip-tarjeta.chip-ok  { color: rgb(var(--app-texto-exito-rgb)); }
+.chip-tarjeta.chip-mal { color: rgb(var(--app-texto-peligro-rgb)); }
+
+/* En el celular, las columnas se deslizan de costado (una por pantalla, con la siguiente asomando). */
+@media (max-width: 767.98px) {
+  .tablero {
+    grid-template-columns: repeat(3, 85%);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 0.5rem;
+  }
+
+  .tablero-columna {
+    scroll-snap-align: start;
+  }
+
+  /* Mientras se arrastra una tarjeta, sin encaje: si no, el desplazamiento de a poco hacia la
+     otra columna (tablero.js) volvía siempre a la columna de partida. */
+  .tablero.arrastrando {
+    scroll-snap-type: none;
+  }
+}
+
+/* === Entrada con PIN en el mostrador (auth/mostrador) === */
+.pin-campo {
+  letter-spacing: 0.6em;
+  font-size: 1.6rem;
+}
+
+.teclado-pin {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.js-paso-pin.enviando .teclado-pin {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.teclado-pin .btn {
+  min-height: 3.5rem;
+  font-size: 1.4rem;
+}
+
+/* === Encuesta: los cinco botones a lo ancho, grandes para el dedo, con los extremos debajo del 1 y del 5 === */
+.escala-sus .btn {
+  flex: 1;
+  min-height: 44px;
+}
+
+/* === Primeros pasos === */
+.avance-pasos {
+  height: 0.75rem;
+  accent-color: var(--app-exito);
+}
+
+.primeros-pasos .paso-hecho strong {
+  color: var(--app-texto-suave);
+}
+

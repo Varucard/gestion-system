@@ -24,7 +24,7 @@ final class AuditoriaTest extends IntegrationTestCase
 
     $historial = $this->make(AuditoriaRepository::class)->deEntidad('orden', $id);
     $this->assertSame(['cambiar_estado', 'registrar_pago', 'crear'], array_column($historial, 'accion'));
-    $this->assertSame('Orden #' . $id . ': Pendiente → Finalizado', $historial[0]['descripcion']);
+    $this->assertSame('Orden #' . $id . ': Recibido → Listo', $historial[0]['descripcion']);
     $this->assertSame('Sistema', $historial[0]['usuario_nombre'], 'Sin sesión (CLI/tests) el actor es Sistema');
 
     $precio = $this->make(AuditoriaRepository::class)->deEntidad('servicio', $servicio)[0];

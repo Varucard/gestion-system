@@ -1,0 +1,27 @@
+{
+  "importe": [
+    { "entrada": "10.000", "esperado": 10000, "nota": "punto de miles: diez mil, no diez" },
+    { "entrada": "1.234,50", "esperado": 1234.5 },
+    { "entrada": "$ 46.000,00", "esperado": 46000 },
+    { "entrada": "46000.00", "esperado": 46000, "nota": "punto decimal cuando no puede ser de miles" },
+    { "entrada": "46000", "esperado": 46000 },
+    { "entrada": "0,5", "esperado": 0.5 },
+    { "entrada": "0.500", "esperado": 0.5, "nota": "empieza con 0: es decimal" },
+    { "entrada": "1.250.000", "esperado": 1250000 },
+    { "entrada": "15,75", "esperado": 15.75 },
+    { "entrada": "  12 ", "esperado": 12 },
+    { "entrada": "1.23,4", "esperado": null, "nota": "puntos de miles mal puestos" },
+    { "entrada": "10,000.50", "esperado": null, "nota": "formato yanqui" },
+    { "entrada": "abc", "esperado": null },
+    { "entrada": "", "esperado": null },
+    { "entrada": "-5", "esperado": null }
+  ],
+  "cantidadAmbigua": [
+    { "entrada": "1.250", "esperado": true, "nota": "¿1250 o 1,25?" },
+    { "entrada": "12.500", "esperado": true },
+    { "entrada": "1250", "esperado": false },
+    { "entrada": "1,25", "esperado": false },
+    { "entrada": "2", "esperado": false },
+    { "entrada": "1.250.000", "esperado": false }
+  ]
+}

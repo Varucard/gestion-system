@@ -7,12 +7,12 @@
   <title>Sin conexión</title>
   <style>
     /* Página autónoma: no depende de ningún otro archivo, porque se muestra justamente cuando no hay red. */
-    :root { color-scheme: light dark; --fondo: #f8f9fa; --texto: #212529; --suave: #6c757d; --boton: #0d6efd; }
-    @media (prefers-color-scheme: dark) { :root { --fondo: #111827; --texto: #e5e7eb; --suave: #9ca3af; --boton: #2563eb; } }
-    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--fondo); color: var(--texto); font-family: Arial, sans-serif; text-align: center; padding: 16px; box-sizing: border-box; }
+    :root { color-scheme: dark; --fondo: #0a0820; --texto: #eeebfa; --suave: #aaa4c9; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--fondo); color: var(--texto); font-family: "Saira Semi Condensed", system-ui, Arial, sans-serif; text-align: center; padding: 16px; box-sizing: border-box; }
+    h1 { text-transform: uppercase; letter-spacing: .04em; }
     img { width: 96px; height: 96px; border-radius: 50%; }
     p { color: var(--suave); max-width: 320px; margin: 0 auto 1.5rem; }
-    button { background: var(--boton); color: #fff; border: 0; border-radius: 6px; padding: .75rem 1.5rem; font-size: 1rem; }
+    button { background: linear-gradient(100deg, #7b4ee0, #9b3592 55%, #5866e0); color: #fff; border: 0; border-radius: 10px; padding: .85rem 1.6rem; font: 600 1rem inherit; text-transform: uppercase; letter-spacing: .06em; box-shadow: 0 8px 28px -10px #9b3592; }
   </style>
 </head>
 

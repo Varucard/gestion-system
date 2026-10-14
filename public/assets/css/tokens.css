@@ -1,6 +1,10 @@
 /*
  * Tokens de diseño: el único archivo con valores de color.
  *
+ * La identidad es la de PC Fighter (el sitio web): violeta #4310a2, magenta y azul, el cian
+ * de los fondos de líneas y el fondo azul noche. El modo oscuro es el de la marca (el que se
+ * ve por defecto); el claro usa la misma paleta sobre blanco y lavanda.
+ *
  * Para cambiar un color, se cambia acá y se actualiza en toda la aplicación.
  * Cada token tiene su valor claro (:root) y, si cambia, su valor oscuro.
  * Los "-rgb" existen porque Bootstrap arma sus fondos con rgba(var(--bs-x-rgb)).
@@ -9,57 +13,126 @@
  * llegar a 4.5:1, el mínimo legible. Si se cambia un fondo, revisar también su texto.
  */
 :root {
+  /* Marca (no cambian con el tema) */
+  --marca-violeta: #4310a2;
+  --marca-violeta-claro: #7b4ee0;
+  --marca-magenta: #9b3592;
+  --marca-azul: #5866e0;
+  --marca-cian: #3fd8f0;
+  --marca-noche: #0a0820;                 /* fondo del sitio: el encabezado siempre va sobre este */
+  --marca-noche-2: #110c2e;
+  --marca-noche-borde: #2d2462;
+  --marca-texto-noche: #eeebfa;
+  --marca-texto-noche-suave: #aaa4c9;
+  --marca-degradado: linear-gradient(100deg, var(--marca-violeta-claro), var(--marca-magenta) 55%, var(--marca-azul));
+  --marca-degradado-titulo: linear-gradient(180deg, #b48cff, var(--marca-violeta-claro) 45%, var(--marca-magenta));
+
+  /* Tipografías de la marca: títulos en Jersey Sharp, números grandes en Alien Encounters */
+  --app-fuente: "Saira Semi Condensed", system-ui, "Segoe UI", Arial, sans-serif;
+  --app-fuente-titulo: "Jersey Sharp", "Saira Semi Condensed", Arial, sans-serif;
+  --app-fuente-display: "Alien Encounters", "Jersey Sharp", Arial, sans-serif;
+
   /* Superficies y texto */
-  --app-fondo: #f8f9fa;
+  --app-fondo: #f4f2fb;
   --app-superficie: #ffffff;
-  --app-superficie-hundida: #f8f9fa;     /* encabezados de tarjeta, cabeceras de tabla */
-  --app-superficie-hundida-rgb: 248, 249, 250;
-  --app-texto: #212529;
-  --app-texto-suave: #636a71;            /* el gris de Bootstrap (#6c757d) no llega a 4.5:1 sobre fondo gris */
-  --app-borde: #dee2e6;
-  --app-borde-control: #ced4da;
+  --app-superficie-hundida: #efecf9;     /* encabezados de tarjeta, cabeceras de tabla */
+  --app-superficie-hundida-rgb: 239, 236, 249;
+  --app-texto: #1b1638;
+  --app-texto-suave: #5b5677;
+  --app-borde: #ddd8ef;
+  --app-borde-control: #c9c2e3;
   --app-control-fondo: #ffffff;          /* campos de formulario */
-  --app-fila-alterna: rgba(0, 0, 0, 0.05);
+  --app-fila-alterna: rgba(67, 16, 162, 0.035);
 
   /* Sombras y formas */
-  --app-sombra: rgba(0, 0, 0, 0.1);
-  --app-sombra-hover: rgba(0, 0, 0, 0.15);
-  --app-radio: 6px;
-  --app-fuente: Arial, sans-serif;
+  --app-sombra: rgba(40, 20, 90, 0.1);
+  --app-sombra-hover: rgba(67, 16, 162, 0.18);
+  --app-brillo: rgba(123, 78, 224, 0.35);  /* el resplandor de los botones de la marca */
+  --app-radio: 10px;
   --app-transicion: 0.3s ease;
 
+  /* Textos fijos sobre fondos de color (no cambian con el tema) */
+  --app-sobre-color: #ffffff;            /* sobre violeta, magenta, azul, verde, cobre… */
+  --app-sobre-claro: #0a0820;            /* sobre cian, ámbar */
+  --app-oscurecer: #000000;              /* se mezcla con un color para el "hover" (color-mix) */
+
   /* Colores de acción (botones, badges) */
-  --app-primario: #0d6efd;
-  --app-exito: #198754;
-  --app-exito-rgb: 25, 135, 84;
-  --app-info: #0dcaf0;
-  --app-aviso: #ffc107;
-  --app-peligro: #dc3545;
-  --app-neutro: #6c757d;
-  --app-sobre-info: #000000;
-  --app-sobre-aviso: #000000;
-  --app-texto-exito-rgb: 20, 108, 67;     /* text-success: un punto más oscuro que el verde de fondo */
-  --app-texto-peligro-rgb: 176, 42, 55;   /* text-danger */
+  --app-primario: #5b2bc4;
+  --app-primario-texto: #4310a2;         /* el violeta como texto sobre fondo claro */
+  --app-exito: #15803d;
+  --app-exito-rgb: 21, 128, 61;
+  --app-info: #3fd8f0;
+  --app-aviso: #f5a524;
+  --app-peligro: #c42b47;
+  --app-neutro: #6b6690;
+  --app-foco: #7b4ee0;                   /* anillo de foco del teclado */
+  --app-config: #5a5480;                 /* lavanda gris (blanco encima: 7:1) */
+  --app-stock: #b14a24;                  /* cobre (blanco encima: 5.4:1) */
+  --app-sobre-info: #0a0820;
+  --app-sobre-aviso: #0a0820;
+  --app-texto-exito-rgb: 20, 108, 67;
+  --app-texto-peligro-rgb: 176, 42, 55;
 
   /* Texto de los botones de contorno (outline-*) */
-  --app-contorno-primario: #0a58ca;      /* un tono más oscuro: también se leen sobre las filas grises */
+  --app-contorno-primario: #4310a2;
   --app-contorno-exito: #146c43;
   --app-contorno-peligro: #b02a37;
-  --app-contorno-aviso: #664d03;
+  --app-contorno-aviso: #7a4b00;
 
-  /* Encabezado de cada sección (el color de la barra de arriba) */
-  --seccion-fondo: #0d6efd;
+  /* Color de cada sección: la barra de título lo usa de tinte y el botón principal de fondo.
+     Todos con texto blanco encima (≥ 4.8:1). */
+  --sec-inicio: #4f5bd5;
+  --sec-ordenes: #6d3fd6;
+  --sec-turnos: #9b3592;
+  --sec-clientes: #0f7f73;
+  --sec-equipos: #1a73b8;
+  --sec-stock: #b14a24;
+  --sec-config: #5a5480;
+  --seccion-fondo: var(--sec-inicio);
   --seccion-texto: #ffffff;
 
   /* Estados de órdenes y turnos */
-  --estado-pendiente: #ffc107;
-  --estado-en-proceso: #0dcaf0;
-  --estado-finalizado: #198754;
-  --estado-cancelado: #6c757d;
-  --estado-confirmado: #0dcaf0;
-  --estado-no-asistio: #6c757d;
+  --estado-pendiente: #f5a524;
+  --estado-en-proceso: #3fd8f0;
+  --estado-finalizado: #15803d;
+  --estado-entregado: #3a3466;            /* ya no está en el local (blanco encima: 11:1) */
+  --estado-cancelado: #6b6690;
+  --estado-confirmado: #3fd8f0;
+  --estado-no-asistio: #6b6690;
   --estado-texto-claro: #ffffff;          /* sobre los estados oscuros */
-  --estado-texto-oscuro: #212529;         /* sobre amarillo y celeste */
+  --estado-texto-oscuro: #0a0820;         /* sobre ámbar y cian */
+
+  /* Botones del menú principal: el color de cada sección en versión suave, con texto oscuro */
+  --menu-texto: #1b1638;
+  --menu-inicio: color-mix(in srgb, var(--sec-inicio) 16%, #ffffff);     --menu-inicio-borde: color-mix(in srgb, var(--sec-inicio) 55%, #ffffff);
+  --menu-ordenes: color-mix(in srgb, var(--sec-ordenes) 16%, #ffffff);   --menu-ordenes-borde: color-mix(in srgb, var(--sec-ordenes) 55%, #ffffff);
+  --menu-turnos: color-mix(in srgb, var(--sec-turnos) 16%, #ffffff);     --menu-turnos-borde: color-mix(in srgb, var(--sec-turnos) 55%, #ffffff);
+  --menu-clientes: color-mix(in srgb, var(--sec-clientes) 16%, #ffffff); --menu-clientes-borde: color-mix(in srgb, var(--sec-clientes) 55%, #ffffff);
+  --menu-equipos: color-mix(in srgb, var(--sec-equipos) 16%, #ffffff);   --menu-equipos-borde: color-mix(in srgb, var(--sec-equipos) 55%, #ffffff);
+  --menu-stock: color-mix(in srgb, var(--sec-stock) 16%, #ffffff);       --menu-stock-borde: color-mix(in srgb, var(--sec-stock) 55%, #ffffff);
+
+  /* Botones de acción de las filas (ver, editar, pausar, activar, eliminar): mismo estilo
+     suave que el menú, con el ícono en el tono oscuro de su color */
+  --accion-ver: #e9e6f5;      --accion-ver-borde: #bdb6dc;      --accion-ver-texto: #2c2650;
+  --accion-editar: #e4dbfa;   --accion-editar-borde: #a58be8;   --accion-editar-texto: #3d1494;
+  --accion-pausa: #fdecc8;    --accion-pausa-borde: #f0b850;    --accion-pausa-texto: #6b4200;
+  --accion-exito: #d3efdd;    --accion-exito-borde: #7cc79a;    --accion-exito-texto: #0f5132;
+  --accion-peligro: #f8d7de;  --accion-peligro-borde: #e48a9c;  --accion-peligro-texto: #842029;
+
+  /* Fila "Saldo" de la orden: pendiente (ámbar) o pagada (verde), suaves en los dos temas */
+  --saldo-pendiente-fondo: #fdf0d2;  --saldo-pendiente-texto: #6b4200;
+  --saldo-cero-fondo: #d3efdd;       --saldo-cero-texto: #0f5132;
+
+  /* Agenda semanal: la columna de hoy */
+  --agenda-hoy-fondo: #e4dbfa;
+  --agenda-hoy-texto: #3d1494;
+  --agenda-hoy-columna: rgba(123, 78, 224, 0.05);
+
+  /* Firma en la pantalla: papel blanco y tinta oscura también en modo oscuro (es lo que se imprime) */
+  --firma-papel: #ffffff;
+  --firma-tinta: #1a1a2e;
+  --firma-guia: #8a86a3;
+  --firma-borde: #b6afd4;
 
   /* Celular */
   --app-barra-inferior: 64px;
@@ -68,43 +141,56 @@
 }
 
 [data-bs-theme="dark"] {
-  --app-fondo: #111827;
-  --app-superficie: #1f2933;
-  --app-superficie-hundida: #111827;
-  --app-superficie-hundida-rgb: 17, 24, 39;
-  --app-texto: #e5e7eb;
-  --app-texto-suave: #9ca3af;
-  --app-borde: #374151;
-  --app-borde-control: #4b5563;
-  --app-control-fondo: #111827;
-  --app-fila-alterna: rgba(255, 255, 255, 0.04);
+  --app-fondo: #0a0820;
+  --app-superficie: #110c2e;
+  --app-superficie-hundida: #18123d;
+  --app-superficie-hundida-rgb: 24, 18, 61;
+  --app-texto: #eeebfa;
+  --app-texto-suave: #aaa4c9;
+  --app-borde: #2d2462;
+  --app-borde-control: #3d3280;
+  --app-control-fondo: #0a0820;
+  --app-fila-alterna: rgba(255, 255, 255, 0.03);
 
-  --app-sombra: rgba(0, 0, 0, 0.7);
-  --app-sombra-hover: rgba(0, 0, 0, 0.9);
+  --app-sombra: rgba(0, 0, 0, 0.6);
+  --app-sombra-hover: rgba(123, 78, 224, 0.3);
+  --app-brillo: rgba(155, 53, 146, 0.55);
 
-  --app-primario: #2563eb;
-  --app-exito: #065f46;
-  --app-exito-rgb: 6, 95, 70;
-  --app-info: #0ea5e9;
-  --app-aviso: #d97706;
-  --app-peligro: #dc2626;
-  --app-sobre-info: #111827;
-  --app-sobre-aviso: #111827;
-  --app-texto-exito-rgb: 117, 183, 152;   /* el verde y el rojo de siempre no se leen sobre fondo oscuro */
-  --app-texto-peligro-rgb: 234, 134, 143;
+  --app-primario: #6d3fd6;
+  --app-primario-texto: #9d7bf0;
+  --app-peligro: #d23a57;
+  --app-foco: #3fd8f0;
+  --app-texto-exito-rgb: 110, 231, 168;   /* el verde y el rojo de siempre no se leen sobre fondo oscuro */
+  --app-texto-peligro-rgb: 255, 143, 168;
 
-  --app-contorno-primario: #6ea8fe;
-  --app-contorno-exito: #75b798;
-  --app-contorno-peligro: #ea868f;
-  --app-contorno-aviso: #ffda6a;
+  --app-contorno-primario: #9d7bf0;
+  --app-contorno-exito: #6ee7a8;
+  --app-contorno-peligro: #ff8fa8;
+  --app-contorno-aviso: #ffd27a;
 
-  --estado-pendiente: #d97706;
-  --estado-en-proceso: #0ea5e9;
-  --estado-finalizado: #065f46;
-  --estado-cancelado: #4b5563;
-  --estado-confirmado: #0ea5e9;
-  --estado-no-asistio: #4b5563;
-  --estado-texto-oscuro: #111827;
+  --estado-cancelado: #4a4570;
+  --estado-no-asistio: #4a4570;
+
+  --menu-texto: #eeebfa;
+  --menu-inicio: color-mix(in srgb, var(--sec-inicio) 26%, #110c2e);     --menu-inicio-borde: color-mix(in srgb, var(--sec-inicio) 70%, #110c2e);
+  --menu-ordenes: color-mix(in srgb, var(--sec-ordenes) 26%, #110c2e);   --menu-ordenes-borde: color-mix(in srgb, var(--sec-ordenes) 70%, #110c2e);
+  --menu-turnos: color-mix(in srgb, var(--sec-turnos) 26%, #110c2e);     --menu-turnos-borde: color-mix(in srgb, var(--sec-turnos) 70%, #110c2e);
+  --menu-clientes: color-mix(in srgb, var(--sec-clientes) 26%, #110c2e); --menu-clientes-borde: color-mix(in srgb, var(--sec-clientes) 70%, #110c2e);
+  --menu-equipos: color-mix(in srgb, var(--sec-equipos) 26%, #110c2e);   --menu-equipos-borde: color-mix(in srgb, var(--sec-equipos) 70%, #110c2e);
+  --menu-stock: color-mix(in srgb, var(--sec-stock) 26%, #110c2e);       --menu-stock-borde: color-mix(in srgb, var(--sec-stock) 70%, #110c2e);
+
+  --accion-ver: #221b4d;      --accion-ver-borde: #3d3280;      --accion-ver-texto: #e2ddf7;
+  --accion-editar: #2b1a63;   --accion-editar-borde: #6d3fd6;   --accion-editar-texto: #d9ccff;
+  --accion-pausa: #3a2a10;    --accion-pausa-borde: #a8731a;    --accion-pausa-texto: #ffd27a;
+  --accion-exito: #0f3b26;    --accion-exito-borde: #1f8a52;    --accion-exito-texto: #8ee6b5;
+  --accion-peligro: #45152a;  --accion-peligro-borde: #a8344f;  --accion-peligro-texto: #ffb3c4;
+
+  --saldo-pendiente-fondo: #3a2a10;  --saldo-pendiente-texto: #ffd27a;
+  --saldo-cero-fondo: #0f3b26;       --saldo-cero-texto: #8ee6b5;
+
+  --agenda-hoy-fondo: #2b1a63;
+  --agenda-hoy-texto: #d9ccff;
+  --agenda-hoy-columna: rgba(123, 78, 224, 0.08);
 
   color-scheme: dark;
 }
@@ -124,23 +210,50 @@
   --bs-secondary-color: var(--app-texto-suave);
   --bs-border-color: var(--app-borde);
   --bs-tertiary-bg: var(--app-superficie-hundida);
+  --bs-border-radius: 8px;
+  --bs-border-radius-lg: var(--app-radio);
 }
 
-/* Links: el azul de Bootstrap (#0d6efd) queda en 4.3:1 sobre el fondo gris; en oscuro ya se lee.
+/* Links: el violeta de la marca en claro; en oscuro, el cian de los fondos de líneas.
    Ojo: <html> es :root también en modo oscuro, por eso el :not(). */
 :root:not([data-bs-theme="dark"]),
 [data-bs-theme="light"] {
-  --bs-link-color: #0a58ca;
-  --bs-link-color-rgb: 10, 88, 202;
-  --bs-link-hover-color: #084298;
-  --bs-link-hover-color-rgb: 8, 66, 152;
+  --bs-link-color: #4310a2;
+  --bs-link-color-rgb: 67, 16, 162;
+  --bs-link-hover-color: #9b3592;
+  --bs-link-hover-color-rgb: 155, 53, 146;
+}
+
+[data-bs-theme="dark"] {
+  --bs-link-color: #3fd8f0;
+  --bs-link-color-rgb: 63, 216, 240;
+  --bs-link-hover-color: #9ff0fb;
+  --bs-link-hover-color-rgb: 159, 240, 251;
 }
 
 /* Colores de encabezado por sección (data-seccion en <body>). */
 [data-seccion="clientes"],
-[data-seccion="deudores"]    { --seccion-fondo: var(--app-exito); --seccion-texto: #ffffff; }
-[data-seccion="equipos"]   { --seccion-fondo: #0dcaf0; --seccion-texto: #212529; }
+[data-seccion="deudores"]    { --seccion-fondo: var(--sec-clientes); }
+[data-seccion="equipos"]     { --seccion-fondo: var(--sec-equipos); }
 [data-seccion="ordenes"],
-[data-seccion="turnos"]      { --seccion-fondo: #ffc107; --seccion-texto: #212529; }
+[data-seccion="recepcion"],
+[data-seccion="usabilidad"],
+[data-seccion="encuesta"]    { --seccion-fondo: var(--sec-ordenes); }
+/* Configuración (todas las pantallas de su submenú): lavanda neutra, como su botón en el menú. */
+[data-seccion="servicios"],
+[data-seccion="combos"],
+[data-seccion="marcas"],
+[data-seccion="modelos"],
+[data-seccion="configuracion"],
+[data-seccion="empleados"],
+[data-seccion="usuarios"],
+[data-seccion="mostrador"],
+[data-seccion="primeros-pasos"],
+[data-seccion="auditoria"],
+[data-seccion="logs"],
+[data-seccion="perfil"],
+[data-seccion="ayuda"]       { --seccion-fondo: var(--sec-config); }
+[data-seccion="turnos"]      { --seccion-fondo: var(--sec-turnos); }
 [data-seccion="repuestos"],
-[data-seccion="proveedores"] { --seccion-fondo: #212529; --seccion-texto: #ffffff; }
+[data-seccion="proveedores"],
+[data-seccion="precios"]     { --seccion-fondo: var(--sec-stock); }

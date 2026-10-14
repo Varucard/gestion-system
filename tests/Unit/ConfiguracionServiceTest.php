@@ -41,6 +41,7 @@ final class ConfiguracionServiceTest extends TestCase
     return [
       'validez' => '15', 'garantia' => '30', 'tiempo_estimado' => '2',
       'forma_pago' => "Contado\r\n\r\n Transferencia ", 'observaciones' => '', 'mensaje_legal' => "'; system('id'); //",
+      'alerta_listo_dias' => '3', 'alerta_presupuesto_dias' => '5', 'ticket_ancho' => '58',
     ];
   }
 

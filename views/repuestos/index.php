@@ -23,13 +23,13 @@
           'atributos' => ['minlength' => 2, 'maxlength' => 150, 'required' => true],
         ]) ?>
         <?= $view->partial('componentes/campo', [
-          'nombre' => 'precio_costo', 'etiqueta' => 'Costo', 'tipo' => 'number', 'prefijo' => '$', 'valor' => $repuesto['precio_costo'] ?? '',
-          'columna' => 'col-md-2 mb-3', 'atributos' => ['step' => '0.01', 'min' => 0],
+          'nombre' => 'precio_costo', 'etiqueta' => 'Costo', 'tipo' => 'importe', 'prefijo' => '$', 'valor' => $repuesto['precio_costo'] ?? '',
+          'columna' => 'col-md-2 mb-3', 'atributos' => ['data-min' => 0],
         ]) ?>
         <div class="col-md-2 mb-3">
           <?= $view->partial('componentes/campo', [
-            'nombre' => 'precio', 'etiqueta' => 'Precio de venta *', 'tipo' => 'number', 'prefijo' => '$', 'valor' => $repuesto['precio'] ?? '',
-            'atributos' => ['step' => '0.01', 'min' => 0, 'required' => true],
+            'nombre' => 'precio', 'etiqueta' => 'Precio de venta *', 'tipo' => 'importe', 'prefijo' => '$', 'valor' => $repuesto['precio'] ?? '',
+            'atributos' => ['data-min' => 0, 'required' => true],
           ]) ?>
           <button type="button" class="btn btn-link btn-sm px-0" id="sugerir_precio" data-margen="<?= e((string) $margen) ?>">
             Sugerir con <?= qty($margen) ?>% de margen
@@ -42,9 +42,9 @@
           'opciones' => array_column(array_map(fn($p) => [(int) $p['id'], $p['nombre']], $proveedores), 1, 0),
         ]) ?>
         <?= $view->partial('componentes/campo', [
-          'nombre' => 'stock_minimo', 'etiqueta' => 'Stock mínimo', 'tipo' => 'number', 'columna' => 'col-md-3 mb-3',
+          'nombre' => 'stock_minimo', 'etiqueta' => 'Stock mínimo', 'tipo' => 'importe', 'columna' => 'col-md-3 mb-3',
           'valor' => isset($repuesto['stock_minimo']) ? (float) $repuesto['stock_minimo'] : '0',
-          'atributos' => ['step' => '0.01', 'min' => 0], 'ayuda' => 'Avisa cuando el stock llega a este valor.',
+          'atributos' => ['data-min' => 0, 'data-formato' => 'cantidad'], 'ayuda' => 'Avisa cuando el stock llega a este valor.',
         ]) ?>
         <?php if ($repuesto): ?>
           <div class="col-md-4 mb-3">
@@ -60,7 +60,7 @@
         'nombre' => 'descripcion', 'etiqueta' => 'Descripción', 'tipo' => 'textarea', 'columna' => 'mb-3',
         'valor' => $repuesto['descripcion'] ?? '', 'atributos' => ['rows' => 2],
       ]) ?>
-      <button type="submit" class="btn btn-seccion"><?= icono('check-lg') ?> <?= $repuesto ? 'Actualizar repuesto' : 'Registrar repuesto' ?></button>
+      <button type="submit" class="btn btn-seccion"><?= icono('check-lg') ?> <?= $repuesto ? 'Guardar cambios' : 'Guardar repuesto' ?></button>
       <?php if ($repuesto): ?>
         <a href="<?= url('repuestos') ?>" class="btn btn-outline-secondary">Cancelar</a>
       <?php endif; ?>
@@ -78,13 +78,13 @@
         <thead>
           <tr>
             <th>Código</th>
-            <th>Nombre</th>
+            <th data-prioridad="1">Nombre</th>
             <th>Proveedor</th>
             <th>Costo</th>
-            <th>Precio</th>
+            <th data-prioridad="4">Precio</th>
             <th>Margen</th>
-            <th>Stock</th>
-            <th data-orderable="false">Acciones</th>
+            <th data-prioridad="3">Stock</th>
+            <th data-orderable="false" data-prioridad="2">Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -129,13 +129,13 @@
     const precio = document.getElementById('precio');
     const margen = document.getElementById('margen_actual');
     const mostrar = () => {
-      const c = parseFloat(costo.value), p = parseFloat(precio.value);
+      const c = window.leerImporte(costo.value), p = window.leerImporte(precio.value);
       margen.textContent = c > 0 && p > 0 ? `Margen actual: ${((p / c - 1) * 100).toFixed(1).replace('.', ',')} %` : '';
     };
     document.getElementById('sugerir_precio').addEventListener('click', (e) => {
-      const c = parseFloat(costo.value);
+      const c = window.leerImporte(costo.value);
       if (c > 0) {
-        precio.value = (c * (1 + parseFloat(e.target.dataset.margen) / 100)).toFixed(2);
+        precio.value = window.formatoImporte(Math.round(c * (1 + parseFloat(e.target.dataset.margen) / 100) * 100) / 100);
         mostrar();
       } else {
         costo.focus();

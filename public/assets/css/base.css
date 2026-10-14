@@ -1,10 +1,115 @@
 /* Elementos sueltos. Los colores salen de los tokens. */
+
+/*
+ * Tipografías de la marca PC Fighter, servidas desde el propio sistema (sin CDN).
+ * Jersey Sharp es la versión con tildes, Ñ y ¿ ¡ que armó el sitio de PC Fighter.
+ */
+@font-face {
+  font-family: "Saira Semi Condensed";
+  src: url("../fonts/saira-400.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Saira Semi Condensed";
+  src: url("../fonts/saira-500.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Saira Semi Condensed";
+  src: url("../fonts/saira-600.woff2") format("woff2");
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Saira Semi Condensed";
+  src: url("../fonts/saira-700.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Jersey Sharp";
+  src: url("../fonts/jersey-sharp-es.otf") format("opentype");
+  font-display: swap;
+}
+@font-face {
+  font-family: "Alien Encounters";
+  src: url("../fonts/alien-encounters-italic.ttf") format("truetype");
+  font-display: swap;
+}
+
+/*
+ * Letra un punto más grande que la de Bootstrap (17px en vez de 16px), se lee mejor en el
+ * local. Va en la raíz y no en el texto: así textos, botones, campos y títulos crecen
+ * parejo y no quedan dos tamaños mezclados.
+ */
+html {
+  font-size: 106.25%;
+}
+
+/* Tamaño de letra a elección (botones A− / A+, se guarda por navegador): todo escala parejo. */
+html[data-letra="-1"] { font-size: 93.75%; }
+html[data-letra="1"]  { font-size: 118.75%; }
+html[data-letra="2"]  { font-size: 131.25%; }
+
+/*
+ * Foco del teclado bien visible en todo lo que se puede usar (Tab): un anillo grueso que se
+ * ve sobre cualquier color de botón. Solo con teclado (:focus-visible), no al hacer clic.
+ */
+:where(a, button, .btn, summary, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--app-foco);
+  outline-offset: 2px;
+}
 body {
   background-color: var(--app-fondo);
   color: var(--app-texto);
   margin: 0;
   padding: 0;
+  -webkit-font-smoothing: antialiased;
   transition: background-color var(--app-transicion), color var(--app-transicion);
+}
+
+/*
+ * El fondo de líneas del sitio de PC Fighter, arriba de todo y apagándose hacia abajo. En
+ * claro va mucho más tenue: es un detalle de marca, no tiene que competir con el contenido.
+ */
+body::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 520px;
+  z-index: -1;
+  pointer-events: none;
+  background: url("../img/fondo-lineas.jpg") center top / cover no-repeat;
+  opacity: 0.12;
+  -webkit-mask-image: linear-gradient(180deg, #000 10%, transparent 95%);
+  mask-image: linear-gradient(180deg, #000 10%, transparent 95%);
+}
+
+[data-bs-theme="dark"] body::before {
+  opacity: 0.4;
+}
+
+/* Títulos con la tipografía de la marca: Jersey Sharp, en mayúsculas como en el sitio. */
+h1, h2, h3, h4, h5, .h1, .h2, .h3, .h4, .h5 {
+  font-family: var(--app-fuente-titulo);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* Los títulos chicos (h6, encabezados de tarjeta) siguen en Saira: en Jersey no se leen. */
+h6, .h6 {
+  font-weight: 600;
+}
+
+/* El texto con el degradado de la marca (como "DE PIE" en el sitio). */
+.texto-marca {
+  background: var(--marca-degradado);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 @media (prefers-reduced-motion: reduce) {

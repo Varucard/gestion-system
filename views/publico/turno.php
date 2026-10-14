@@ -29,7 +29,7 @@ $estado = EstadoTurno::from($turno['estado']);
             <button type="submit" class="btn btn-success btn-lg"><?= icono('check-lg') ?> Confirmo que voy</button>
           </form>
         <?php endif; ?>
-        <form action="<?= url("turno/{$token}/cancelar") ?>" method="POST" data-confirm="¿Seguro que querés cancelar el turno?">
+        <form action="<?= url("turno/{$token}/cancelar") ?>" method="POST" data-confirm="¿Seguro que querés cancelar el turno?" data-confirm-aceptar="Sí, cancelar el turno">
           <?= csrf_field() ?>
           <button type="submit" class="btn btn-outline-danger btn-lg"><?= icono('x-lg') ?> Cancelar turno</button>
         </form>

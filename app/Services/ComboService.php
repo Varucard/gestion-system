@@ -45,7 +45,7 @@ final class ComboService
 
     foreach (['servicio', 'repuesto'] as $tipo) {
       foreach ((array) ($input['items'][$tipo] ?? []) as $itemId => $cantidad) {
-        $valor = Validator::importe((string) $cantidad);
+        $valor = Validator::cantidad((string) $cantidad);
         $cantidadesValidas = $cantidadesValidas && $valor !== null && $valor > 0;
         $items[$tipo][(int) $itemId] = (float) $valor;
       }
@@ -54,7 +54,7 @@ final class ComboService
     (new Validator())
       ->check(Validator::largo($nombre, 2, 100), 'El nombre del combo debe tener entre 2 y 100 caracteres.')
       ->check($items['servicio'] !== [] || $items['repuesto'] !== [], 'Agregá al menos un servicio o repuesto al combo.')
-      ->check($cantidadesValidas, 'Las cantidades deben ser mayores a 0.')
+      ->check($cantidadesValidas, 'Las cantidades deben ser mayores a 0 (escribilas sin punto, o con coma si llevan decimales: 1,25).')
       ->check(count($this->servicios->precios(array_keys($items['servicio']))) === count($items['servicio']), 'Alguno de los servicios no existe.')
       ->check(count($this->repuestos->precios(array_keys($items['repuesto']))) === count($items['repuesto']), 'Alguno de los repuestos no existe.')
       ->validate();

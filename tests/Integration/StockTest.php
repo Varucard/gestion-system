@@ -80,7 +80,7 @@ final class StockTest extends IntegrationTestCase
     $filtro = $this->crearRepuesto('Filtro', 100);
     $this->make(StockService::class)->ingresar($filtro, '1', null, null, null);
     $ordenes = $this->make(OrdenService::class);
-    $id = $ordenes->guardar($equipo, [$this->crearServicio('Service', 500)], [$filtro => ['cantidad' => '2']]);
+    $id = $ordenes->guardar($equipo, [$this->crearServicio('Limpieza', 500)], [$filtro => ['cantidad' => '2']]);
 
     try {
       $ordenes->cambiarEstado($id, 'finalizado');

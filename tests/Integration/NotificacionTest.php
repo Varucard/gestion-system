@@ -25,6 +25,21 @@ final class NotificacionTest extends IntegrationTestCase
 
   private int $secuencia = 0;
 
+  /**
+   * Un viernes de la semana que viene, y los días alrededor ("+4 days" es el martes). Las
+   * fechas se calculan desde hoy: con fechas fijas los tests dejaban de andar en cuanto
+   * pasaban, porque no se pueden agendar turnos en fechas pasadas.
+   */
+  private static function viernes(string $mas = '+0 days', string $hora = '00:00'): DateTimeImmutable
+  {
+    return (new DateTimeImmutable('friday next week'))->modify($mas)->setTime(...array_map('intval', explode(':', $hora)));
+  }
+
+  private static function dia(string $mas): string
+  {
+    return self::viernes($mas)->format('Y-m-d');
+  }
+
   private function turno(string $fecha, string $hora = '09:30', ?string $email = 'juan@mail.com'): int
   {
     $n = ++$this->secuencia;
@@ -74,6 +89,7 @@ final class NotificacionTest extends IntegrationTestCase
   public function testWhatsappManualUsaCodigoDePaisYPlantilla(): void
   {
     $this->configurar('mensajes', ['whatsapp_recordatorio' => 'Hola {cliente}, turno {fecha} {hora}']);
+    $this->configurar('notificaciones', ['whatsapp_abrir' => 'wame']);
     $id = $this->turno(date('Y-m-d', strtotime('+1 day')));
 
     $url = $this->notificaciones->whatsappManual($id);
@@ -85,28 +101,28 @@ final class NotificacionTest extends IntegrationTestCase
 
   public function testRecordatoriosAutomaticosSoloEnHorarioHabilYParaElProximoDiaHabil(): void
   {
-    // Viernes 2026-10-09. Horario: lunes a viernes 8 a 18, sábado y domingo cerrado; lunes 12 feriado.
+    // Un viernes. Horario: lunes a viernes 8 a 18, sábado y domingo cerrado; el lunes siguiente, feriado.
     $semana = ['desde' => '08:00', 'hasta' => '18:00'];
     $this->configurar('turnos', [
       'horario' => ['1' => $semana, '2' => $semana, '3' => $semana, '4' => $semana, '5' => $semana, '6' => null, '7' => null],
-      'feriados' => ['2026-10-12'], 'recordatorio_hora' => '10:00',
+      'feriados' => [self::dia('+3 days')], 'recordatorio_hora' => '10:00',
     ]);
-    $martes = $this->turno('2026-10-13');
-    $miercoles = $this->turno('2026-10-14');
+    $martes = $this->turno(self::dia('+4 days'));
+    $miercoles = $this->turno(self::dia('+5 days'));
 
-    $antesDeHora = $this->notificaciones->enviarRecordatoriosPendientes(new DateTimeImmutable('2026-10-09 09:00'));
+    $antesDeHora = $this->notificaciones->enviarRecordatoriosPendientes(self::viernes('+0 days', '09:00'));
     $this->assertSame('Todavía no es la hora de envío.', $antesDeHora['omitido']);
 
-    $finDeSemana = $this->notificaciones->enviarRecordatoriosPendientes(new DateTimeImmutable('2026-10-10 11:00'));
+    $finDeSemana = $this->notificaciones->enviarRecordatoriosPendientes(self::viernes('+1 day', '11:00'));
     $this->assertSame('Fuera del horario de atención.', $finDeSemana['omitido']);
 
-    // Viernes 10:30: el próximo día hábil es el martes 13 (sábado/domingo cerrado y lunes feriado).
-    $viernes = $this->notificaciones->enviarRecordatoriosPendientes(new DateTimeImmutable('2026-10-09 10:30'));
+    // Viernes 10:30: el próximo día hábil es el martes (sábado/domingo cerrado y lunes feriado).
+    $viernes = $this->notificaciones->enviarRecordatoriosPendientes(self::viernes('+0 days', '10:30'));
     $this->assertSame(1, $viernes['enviados']);
     $this->assertSame('juan@mail.com', $this->canal->enviados[0]['destinatario']->email);
 
     // Otra ejecución no lo repite.
-    $this->notificaciones->enviarRecordatoriosPendientes(new DateTimeImmutable('2026-10-09 11:00'));
+    $this->notificaciones->enviarRecordatoriosPendientes(self::viernes('+0 days', '11:00'));
     $this->assertCount(1, $this->canal->enviados);
 
     $repo = $this->make(TurnoRepository::class);
@@ -118,30 +134,30 @@ final class NotificacionTest extends IntegrationTestCase
   {
     $semana = ['desde' => '08:00', 'hasta' => '18:00'];
     $this->configurar('turnos', ['horario' => array_fill_keys(['1', '2', '3', '4', '5', '6', '7'], $semana), 'feriados' => [], 'recordatorio_hora' => '08:00']);
-    $id = $this->turno('2026-10-10');
+    $id = $this->turno(self::dia('+1 day'));
 
     $this->canal->fallar = true;
-    $resultado = $this->notificaciones->enviarRecordatoriosPendientes(new DateTimeImmutable('2026-10-09 10:00'));
+    $resultado = $this->notificaciones->enviarRecordatoriosPendientes(self::viernes('+0 days', '10:00'));
     $this->assertSame(1, $resultado['errores']);
     $this->assertNull($this->make(TurnoRepository::class)->detalle($id)['recordatorio_enviado']);
 
     $this->canal->fallar = false;
-    $this->assertSame(1, $this->notificaciones->enviarRecordatoriosPendientes(new DateTimeImmutable('2026-10-09 10:15'))['enviados']);
+    $this->assertSame(1, $this->notificaciones->enviarRecordatoriosPendientes(self::viernes('+0 days', '10:15'))['enviados']);
   }
 
   public function testUnaReservaQueQuedoTrabadaSeReintenta(): void
   {
     $semana = ['desde' => '08:00', 'hasta' => '18:00'];
     $this->configurar('turnos', ['horario' => array_fill_keys(['1', '2', '3', '4', '5', '6', '7'], $semana), 'feriados' => [], 'recordatorio_hora' => '08:00']);
-    $id = $this->turno('2026-10-10');
+    $id = $this->turno(self::dia('+1 day'));
 
     // Un proceso reservó el envío y se cortó: hace 5 minutos todavía puede estar enviando.
     $this->db->exec("UPDATE turnos SET recordatorio_canal = 'enviando', recordatorio_enviado = NOW() - INTERVAL 5 MINUTE WHERE id = {$id}");
-    $this->assertSame(0, $this->notificaciones->enviarRecordatoriosPendientes(new DateTimeImmutable('2026-10-09 10:00'))['enviados']);
+    $this->assertSame(0, $this->notificaciones->enviarRecordatoriosPendientes(self::viernes('+0 days', '10:00'))['enviados']);
 
     // Pasada media hora, la reserva se considera abandonada y se reintenta.
     $this->db->exec("UPDATE turnos SET recordatorio_enviado = NOW() - INTERVAL 31 MINUTE WHERE id = {$id}");
-    $this->assertSame(1, $this->notificaciones->enviarRecordatoriosPendientes(new DateTimeImmutable('2026-10-09 10:15'))['enviados']);
+    $this->assertSame(1, $this->notificaciones->enviarRecordatoriosPendientes(self::viernes('+0 days', '10:15'))['enviados']);
     $this->assertSame('email', $this->make(TurnoRepository::class)->detalle($id)['recordatorio_canal']);
   }
 }

@@ -26,6 +26,21 @@ final class MarcaService
     return $this->marcas->find($id) ?? throw new NotFoundException('Marca no encontrada.');
   }
 
+  /** Marca escrita al cargar un equipo: se usa la existente (sin importar mayúsculas) o se agrega. */
+  public function obtenerOCrear(string $nombre): int
+  {
+    $nombre = preg_replace('/\s+/u', ' ', trim($nombre));
+    $existente = $this->marcas->porNombre($nombre);
+    if ($existente !== null) {
+      return (int) $existente['id'];
+    }
+
+    $id = $this->guardar($nombre);
+    $this->auditor->registrar('crear', 'marca', $id, "Marca agregada al cargar un equipo: {$nombre}");
+
+    return $id;
+  }
+
   public function guardar(string $nombre, ?int $id = null): int
   {
     if ($id !== null) {

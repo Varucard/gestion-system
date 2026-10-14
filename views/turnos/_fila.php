@@ -13,14 +13,17 @@ $opciones = implode('', array_map(
 $activo = in_array($t['estado'], ['pendiente', 'confirmado'], true);
 
 return [
-  '<strong>' . format_date($t['fecha']) . '</strong><br><small class="text-muted">' . e(substr($t['hora'], 0, 5)) . ' hs</small>',
+  '<strong>' . format_date($t['fecha']) . '</strong><br><small class="text-muted">' . e(substr($t['hora'], 0, 5)) . ' hs</small>'
+    // En el celular se pliegan cliente y equipo: quién viene queda a la vista.
+    . '<div class="small d-md-none">' . e($t['cliente']) . '</div>',
   e($t['cliente']),
   e($t['equipo']),
   '<small>' . e($t['descripcion'] ?? '') . '</small>',
-  '<select class="form-select form-select-sm select-estado estado-turno-select estado-' . e($t['estado']) . '" data-url="' . e(url("turnos/{$t['id']}/estado")) . '" aria-label="Estado del turno ' . (int) $t['id'] . '">' . $opciones . '</select>',
+  '<select class="form-select form-select-sm select-estado estado-turno-select estado-' . e($t['estado']) . '" data-url="' . e(url("turnos/{$t['id']}/estado")) . '" data-actual="' . e($t['estado']) . '" aria-label="Estado del turno ' . (int) $t['id'] . '">' . $opciones . '</select>',
   ($activo && $t['fecha'] >= date('Y-m-d') ? $view->partial('turnos/_recordatorio', ['turno' => $t, 'avisos' => $avisos, 'volver' => '']) : '')
     . '<div class="acciones-fila">'
-    . ($activo ? boton_accion('ordenes/crear?turno_id=' . $t['id'], 'clipboard-plus', 'Crear orden') . ' ' : '')
+    // "Recibir" es la acción principal de un turno: va con texto, no como un íconito más.
+    . ($activo ? '<a href="' . e(url('recepcion?turno_id=' . $t['id'])) . '" class="btn btn-sm btn-primary">' . icono('laptop') . ' Recibir</a> ' : '')
     . boton_accion("turnos/{$t['id']}/editar", 'pencil', 'Editar', 'btn-outline-primary') . ' '
     . $view->partial('partials/delete_button', [
       'action' => "turnos/{$t['id']}/eliminar",

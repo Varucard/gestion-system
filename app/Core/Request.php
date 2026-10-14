@@ -63,6 +63,37 @@ final class Request
     return is_array($file) && ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE ? $file : null;
   }
 
+  /**
+   * Varios archivos de un mismo campo (<input type="file" name="fotos[]" multiple>), uno por
+   * elemento con el formato de un archivo suelto de $_FILES. Los que no se enviaron no cuentan.
+   *
+   * @return list<array<string, mixed>>
+   */
+  public function files(string $name): array
+  {
+    $campo = $this->files[$name] ?? null;
+    if (!is_array($campo) || !is_array($campo['name'] ?? null)) {
+      return ($archivo = $this->file($name)) !== null ? [$archivo] : [];
+    }
+
+    $archivos = [];
+    foreach (array_keys($campo['name']) as $i) {
+      $archivo = array_combine(array_keys($campo), array_map(fn(array $valores) => $valores[$i] ?? null, $campo));
+      if (($archivo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+        $archivos[] = $archivo;
+      }
+    }
+
+    return $archivos;
+  }
+
+  public function cookie(string $name): ?string
+  {
+    $valor = $_COOKIE[$name] ?? null;
+
+    return is_string($valor) ? $valor : null;
+  }
+
   public function header(string $name): ?string
   {
     $key = 'HTTP_' . strtoupper(str_replace('-', '_', $name));

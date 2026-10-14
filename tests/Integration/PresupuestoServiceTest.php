@@ -144,7 +144,7 @@ final class PresupuestoServiceTest extends IntegrationTestCase
     $this->assertSame('aceptado', $repo->find($id)['presupuesto_respuesta']);
 
     $this->make(OrdenService::class)->cambiarEstado($id, 'cancelado');
-    $this->assertValidationError(fn() => $this->notificaciones->enviarPresupuesto($id), 'pendientes o en proceso');
+    $this->assertValidationError(fn() => $this->notificaciones->enviarPresupuesto($id), 'recibidas o en reparación');
   }
 
   public function testLaVigenciaSeCuentaDesdeElEnvio(): void

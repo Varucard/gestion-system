@@ -53,7 +53,7 @@ final class TurnoController extends Controller
       'fecha' => preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $request->query('fecha')) ? $request->query('fecha') : null,
       'hora' => preg_match('/^\d{2}:\d{2}$/', (string) $request->query('hora')) ? $request->query('hora') : null,
     ]);
-    $this->form('Agendar turno', null, (int) $request->int('cliente_id'), $sugerido);
+    $this->form('Nuevo turno', null, (int) $request->int('cliente_id'), $sugerido);
   }
 
   public function semana(Request $request): void
@@ -62,6 +62,12 @@ final class TurnoController extends Controller
       'title' => 'Agenda semanal',
       'agenda' => $this->agenda->semana((string) $request->query('desde', ''), new \DateTimeImmutable()),
     ]);
+  }
+
+  /** JSON: horarios del día con sus cupos libres, para elegir tocando en vez de escribir la hora. */
+  public function horarios(Request $request): void
+  {
+    $this->json($this->agenda->dia((string) $request->query('fecha', ''), new \DateTimeImmutable()));
   }
 
   public function store(Request $request): void
@@ -92,8 +98,11 @@ final class TurnoController extends Controller
   {
     $this->verifyCsrf($request);
 
-    header('Location: ' . $this->notificaciones->whatsappManual($id), true, 303);
-    exit;
+    $url = $this->notificaciones->whatsappManual($id, $request->string('tipo'));
+    // La pantalla de turnos se recarga sola (app.js) y muestra esto.
+    $this->success('Se abrió WhatsApp con el mensaje del turno. Tocá «Enviar» allá para que le llegue al cliente.'
+      . OrdenController::siNoSeAbrio($this->configuracion->seccion('notificaciones')));
+    $this->redirectExterno($url);
   }
 
   /** Botón manual: envía ahora el recordatorio por el canal disponible (email). */
@@ -147,7 +156,8 @@ final class TurnoController extends Controller
       $this->backWithErrors($id ? "/turnos/{$id}/editar" : '/turnos/crear', $e, $request);
     }
 
-    $this->success($id ? 'Turno actualizado correctamente.' : 'Turno agendado correctamente.');
+    $guardado = $id ? 'Turno actualizado correctamente.' : 'Turno agendado correctamente.';
+    $avisado = false; // si sale un aviso amarillo, ya dice que el turno quedó guardado: no va además el verde
 
     // Turno nuevo o reprogramado: se pide (de nuevo) la confirmación del cliente.
     $turno = $this->turnos->detalle($turnoId);
@@ -156,7 +166,21 @@ final class TurnoController extends Controller
       $this->turnos->reiniciarConfirmacion($turnoId);
     }
     if ((!$anterior || $reprogramado) && TurnoService::admiteRespuesta($turno) && $this->configuracion->seccion('turnos')['enviar_confirmacion']) {
-      $this->avisar(fn() => $this->notificaciones->enviarConfirmacion($turnoId), 'Se envió al cliente el pedido de confirmación');
+      // El turno ya quedó guardado: si no se pudo avisar, es un aviso (amarillo), no un error.
+      // Con un error en rojo la gente creía que el turno no se había guardado y lo cargaba de nuevo.
+      try {
+        $canal = $this->notificaciones->enviarConfirmacion($turnoId);
+        $canal !== null
+          ? $this->success("Se envió al cliente el pedido de confirmación por {$canal}.")
+          : $this->aviso('El turno quedó guardado, pero no le pudimos pedir la confirmación porque el cliente no tiene email. Avisale por WhatsApp (botón verde en el listado de turnos) o por teléfono.');
+        $avisado = $canal === null;
+      } catch (\RuntimeException $e) {
+        $this->aviso("El turno quedó guardado, pero no se pudo enviar el pedido de confirmación: {$e->getMessage()} Avisale al cliente por otro medio.");
+        $avisado = true;
+      }
+    }
+    if (!$avisado) {
+      $this->success($guardado);
     }
 
     $this->redirect('/turnos');

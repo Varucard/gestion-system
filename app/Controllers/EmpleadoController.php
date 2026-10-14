@@ -72,7 +72,9 @@ final class EmpleadoController extends Controller
     $this->verifyCsrf($request);
 
     $estado = $this->service->alternarEstado($id);
-    $this->success($estado === Estado::Activo ? 'Empleado activado.' : 'Empleado dado de baja.');
+    // Se hace sin preguntar y se ofrece deshacer (el mismo POST vuelve al estado anterior).
+    $mensaje = $estado === Estado::Activo ? 'Empleado activado.' : 'Empleado dado de baja.';
+    $request->string('deshaciendo') === '1' ? $this->success($mensaje) : $this->hechoConDeshacer($mensaje, "empleados/{$id}/estado");
     $this->redirect('/empleados');
   }
 }

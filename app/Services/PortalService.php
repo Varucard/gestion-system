@@ -80,6 +80,64 @@ final class PortalService
     return $this->resultado($cliente, $equipos, $opciones);
   }
 
+  /** ¿Ese DNI (o esa IP) ya agotó las consultas fallidas? La API lo usa para responder 429. */
+  public function bloqueado(string $dni, string $ip): bool
+  {
+    return $this->intentos->bloqueado(self::AMBITO, preg_replace('/\D/', '', $dni), $ip, self::MINUTOS_BLOQUEO, self::MAX_INTENTOS, self::MAX_INTENTOS_IP, self::MAX_INTENTOS_DNI);
+  }
+
+  /**
+   * Un solo trabajo, por su número de ticket (el de la orden: "0013", "#13", "PCF-0013") y el DNI
+   * del cliente. Es lo que consulta el sitio web por la API. Pide siempre los dos datos: el
+   * número de orden es correlativo y, solo, dejaría recorrer los trabajos de todos. Comparte
+   * con el portal el control de intentos fallidos.
+   *
+   * @return array{nombre: string, orden: array<string, mixed>, mostrarMontos: bool}
+   */
+  public function consultarTicket(string $dni, string $ticket, string $ip): array
+  {
+    if (!$this->opciones()['habilitado']) {
+      throw new NotFoundException('La consulta en línea no está disponible.');
+    }
+
+    $dni = preg_replace('/\D/', '', $dni);
+    $numero = (int) preg_replace('/\D/', '', $ticket);
+
+    if ($this->bloqueado($dni, $ip)) {
+      throw new ValidationException([sprintf('Demasiadas consultas fallidas. Esperá %d minutos e intentá de nuevo.', self::MINUTOS_BLOQUEO)]);
+    }
+
+    (new Validator())
+      ->check((bool) preg_match('/^\d{6,8}$/', $dni), 'Ingresá un DNI válido (solo números).', 'dni')
+      ->check($numero > 0 && $numero < 1_000_000_000, 'Ingresá el número de ticket que figura en tu comprobante.', 'ticket')
+      ->validate();
+
+    $cliente = $this->clientes->porDni($dni);
+    $orden = null;
+    if ($cliente !== null && $cliente['estado'] === 'activo') {
+      foreach ($this->ordenes->porCliente((int) $cliente['id']) as $fila) {
+        if ((int) $fila['id'] === $numero) {
+          // El listado trae saldo y trabajos; la cabecera, el equipo y el presupuesto.
+          $orden = [...$fila, ...$this->ordenes->find($numero)];
+        }
+      }
+    }
+
+    if ($orden === null) {
+      $this->intentos->registrar(self::AMBITO, $dni, $ip);
+      // Mismo mensaje en todos los casos: no revela si el DNI o el ticket existen.
+      throw new ValidationException(['No encontramos un trabajo con ese ticket y ese DNI. Revisalos o comunicate con nosotros.']);
+    }
+
+    $this->intentos->limpiar(self::AMBITO, $dni);
+
+    return [
+      'nombre' => mb_convert_case(mb_strtolower((string) $cliente['nombre']), MB_CASE_TITLE),
+      'orden' => $orden,
+      'mostrarMontos' => (bool) $this->opciones()['mostrar_montos'],
+    ];
+  }
+
   /**
    * Acceso directo desde el link del presupuesto: el token ya identifica al cliente (le
    * llegó a su email), así que no se le pide DNI ni número de orden.

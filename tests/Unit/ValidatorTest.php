@@ -72,6 +72,27 @@ final class ValidatorTest extends TestCase
   public function testImporteAceptaComaYRechazaNegativos(): void
   {
     $this->assertSame(1500.5, Validator::importe('1500,50'));
+    // Como se escribe en Argentina: punto de miles, coma decimal.
+    $this->assertSame(10000.0, Validator::importe('10.000'), 'El punto de miles no es decimal');
+    $this->assertSame(1200.0, Validator::importe('1.200'));
+    $this->assertSame(1250000.0, Validator::importe('1.250.000'));
+    $this->assertSame(1234.5, Validator::importe('1.234,50'));
+    $this->assertSame(46000.0, Validator::importe('$ 46.000,00'));
+    $this->assertSame(46000.0, Validator::importe('46000.00'), 'Punto decimal de los campos numéricos');
+    $this->assertSame(12.5, Validator::importe('12.5'));
+    $this->assertNull(Validator::importe('1.2.3'));
+    $this->assertNull(Validator::importe('10.00,5'), 'Puntos de miles mal puestos');
+    $this->assertSame(0.5, Validator::importe('0.500'), 'Un número no empieza con 0: el punto es decimal');
+    $this->assertNull(Validator::importe('000.500,00'));
+  }
+
+  public function testCantidadAmbiguaSeRechaza(): void
+  {
+    $this->assertNull(Validator::cantidad('1.250'), '¿Mil doscientos cincuenta o uno y cuarto? Se pide escribirlo claro');
+    $this->assertSame(1250.0, Validator::cantidad('1250'));
+    $this->assertSame(1.25, Validator::cantidad('1,25'));
+    $this->assertSame(1.5, Validator::cantidad('1.5'));
+    $this->assertSame(2.0, Validator::cantidad('2'));
     $this->assertSame(0.0, Validator::importe('0'));
     $this->assertNull(Validator::importe('-1'));
     $this->assertNull(Validator::importe('abc'));

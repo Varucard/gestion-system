@@ -7,12 +7,26 @@
 use App\Enums\EstadoOrden;
 ?>
 <h4 class="mt-3">
-  <?php if (mb_strlen($texto) < 2): ?>
+  <?php if (mb_strlen($texto) < 2 && !ctype_digit($texto)): ?>
     Escribí al menos 2 caracteres para buscar.
   <?php else: ?>
     <?= $total ?> resultado<?= $total === 1 ? '' : 's' ?> para “<?= e($texto) ?>”
   <?php endif; ?>
 </h4>
+
+<?php // Sin resultados no es un callejón sin salida: se ofrece lo que probablemente se quería hacer. ?>
+<?php if ($total === 0 && mb_strlen($texto) >= 2): ?>
+  <?php $dni = preg_replace('/[.\s]/', '', $texto); ?>
+  <div class="d-flex flex-wrap gap-2 mt-2">
+    <?php if (preg_match('/^\d{7,8}$/', $dni)): ?>
+      <a href="<?= url('recepcion?dni=' . urlencode($dni)) ?>" class="btn btn-primary"><?= icono('laptop-fill') ?> Recibir un equipo de un cliente nuevo (DNI <?= e($dni) ?>)</a>
+    <?php else: ?>
+      <a href="<?= url('recepcion') ?>" class="btn btn-primary"><?= icono('laptop-fill') ?> Llegó un equipo</a>
+    <?php endif; ?>
+    <a href="<?= url('clientes/crear') ?>" class="btn btn-outline-secondary"><?= icono('person-plus') ?> Nuevo cliente</a>
+  </div>
+  <p class="small text-muted mt-2">Se busca por n° de serie, marca y modelo, DNI, apellido, nombre o número de orden (por ejemplo, #12).</p>
+<?php endif; ?>
 
 <?php if ($resultados['ordenes'] !== []): ?>
   <div class="card mt-3">

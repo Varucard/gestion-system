@@ -16,9 +16,14 @@ $canales = ['email' => 'email', 'whatsapp' => 'WhatsApp', 'sin_contacto' => 'sin
   <div class="small text-muted">Esperando confirmación (enviada <?= format_date($turno['confirmacion_enviada'], 'd/m H:i') ?>)</div>
 <?php endif; ?>
 
-<div class="d-inline-flex flex-wrap gap-1 my-1">
-  <?php if ($avisos['canal']): ?>
-    <form action="<?= url("turnos/{$turno['id']}/recordar") ?>" method="POST" class="d-inline" data-confirm="¿Enviar ahora el recordatorio al cliente?">
+<?php // Los avisos por email solo se ofrecen si el cliente tiene email; si no, se dice. ?>
+<?php $conEmail = !empty($turno['cliente_email']); ?>
+<div class="d-inline-flex flex-wrap gap-1 my-1 align-items-center">
+  <?php if ($avisos['canal'] && !$conEmail): ?>
+    <span class="small text-muted">Sin email<?= $avisos['whatsapp'] ? ': avisale por WhatsApp' : '' ?></span>
+  <?php endif; ?>
+  <?php if ($avisos['canal'] && $conEmail): ?>
+    <form action="<?= url("turnos/{$turno['id']}/recordar") ?>" method="POST" class="d-inline" data-confirm="¿Enviar ahora el recordatorio al cliente por email?" data-confirm-aceptar="Sí, enviarlo">
       <?= csrf_field() ?>
       <input type="hidden" name="volver" value="<?= e($volver ?? '') ?>">
       <button type="submit" class="btn btn-sm btn-accion btn-outline-secondary" title="Enviar recordatorio por email"><?= icono('bell') ?><span class="btn-texto"> Recordar</span></button>
@@ -31,9 +36,13 @@ $canales = ['email' => 'email', 'whatsapp' => 'WhatsApp', 'sin_contacto' => 'sin
     <?php endif; ?>
   <?php endif; ?>
   <?php if ($avisos['whatsapp']): ?>
-    <form action="<?= url("turnos/{$turno['id']}/whatsapp") ?>" method="POST" target="_blank" class="d-inline">
+    <?php // Si el cliente todavía no confirmó, el mensaje lleva el link para confirmar o cancelar. ?>
+    <?php $paraConfirmar = $turno['respuesta_cliente'] === null; ?>
+    <form action="<?= url("turnos/{$turno['id']}/whatsapp") ?>" method="POST" target="<?= e(whatsapp_target_actual()) ?>" data-whatsapp class="d-inline">
       <?= csrf_field() ?>
-      <button type="submit" class="btn btn-sm btn-accion btn-outline-success" title="Abrir WhatsApp con el recordatorio armado"><?= icono('whatsapp') ?><span class="btn-texto"> WhatsApp</span></button>
+      <input type="hidden" name="tipo" value="<?= $paraConfirmar ? 'confirmacion' : 'recordatorio' ?>">
+      <button type="submit" class="btn btn-sm btn-accion btn-outline-success"
+        title="<?= $paraConfirmar ? 'Abrir WhatsApp con el link para que confirme el turno' : 'Abrir WhatsApp con el recordatorio armado' ?>"><?= icono('whatsapp') ?><span class="btn-texto"> WhatsApp</span></button>
     </form>
   <?php endif; ?>
 </div>

@@ -47,6 +47,24 @@ final class RepuestoRepository extends Repository
     return array_map('floatval', $this->fetchPairs("SELECT id, precio FROM repuestos WHERE id IN ({$placeholders})", $ids));
   }
 
+  /**
+   * @param list<int> $ids
+   * @return array<int, ?float> precio de costo indexado por id (null si no tiene costo cargado)
+   */
+  public function costos(array $ids): array
+  {
+    if ($ids === []) {
+      return [];
+    }
+
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+
+    return array_map(
+      fn($costo) => $costo === null ? null : (float) $costo,
+      $this->fetchPairs("SELECT id, precio_costo FROM repuestos WHERE id IN ({$placeholders})", $ids),
+    );
+  }
+
   public function save(Repuesto $r): int
   {
     $params = [$r->codigo, $r->nombre, $r->descripcion, $r->precio, $r->precioCosto, $r->stockMinimo, $r->proveedorId];
@@ -86,5 +104,11 @@ final class RepuestoRepository extends Repository
   public function delete(int $id): void
   {
     $this->execute('DELETE FROM repuestos WHERE id = ?', [$id]);
+  }
+
+  /** ¿Hay alguno cargado? (Primeros pasos: sin traer la lista entera.) */
+  public function hayAlguno(): bool
+  {
+    return $this->fetchOne('SELECT 1 FROM repuestos LIMIT 1') !== null;
   }
 }

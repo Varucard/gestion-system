@@ -72,13 +72,13 @@ final class EmpleadoService
     $email = Validator::nullable(mb_strtolower((string) ($input['email'] ?? '')));
 
     (new Validator())
-      ->check(Validator::soloLetras($nombre, 2, 50), 'El nombre debe contener solo letras (2 a 50 caracteres).')
-      ->check(Validator::soloLetras($apellido, 2, 50), 'El apellido debe contener solo letras (2 a 50 caracteres).')
-      ->check((bool) preg_match('/^\d{6,8}$/', $dni), 'El DNI debe tener entre 6 y 8 dígitos.')
-      ->check(Validator::largo($puesto, 2, 50), 'Indicá el puesto (2 a 50 caracteres).')
-      ->check($telefono === null || (bool) preg_match('/^\d{10}$/', $telefono), 'El teléfono debe tener 10 dígitos.')
-      ->check($ingreso === null || (Validator::fecha($ingreso) && $ingreso <= date('Y-m-d')), 'La fecha de ingreso no es válida.')
-      ->check($email === null || filter_var($email, FILTER_VALIDATE_EMAIL) !== false, 'El email no tiene un formato válido.')
+      ->check(Validator::soloLetras($nombre, 2, 50), 'El nombre debe contener solo letras (2 a 50 caracteres).', 'nombre')
+      ->check(Validator::soloLetras($apellido, 2, 50), 'El apellido debe contener solo letras (2 a 50 caracteres).', 'apellido')
+      ->check((bool) preg_match('/^\d{6,8}$/', $dni), 'El DNI debe tener entre 6 y 8 dígitos.', 'dni')
+      ->check(Validator::largo($puesto, 2, 50), 'Indicá el puesto (2 a 50 caracteres).', 'puesto')
+      ->check($telefono === null || (bool) preg_match('/^\d{10}$/', $telefono), 'El teléfono debe tener 10 dígitos.', 'telefono')
+      ->check($ingreso === null || (Validator::fecha($ingreso) && $ingreso <= date('Y-m-d')), 'La fecha de ingreso no es válida.', 'fecha_ingreso')
+      ->check($email === null || filter_var($email, FILTER_VALIDATE_EMAIL) !== false, 'El email no tiene un formato válido.', 'email')
       ->validate();
 
     return new Empleado($nombre, $apellido, $dni, $puesto, $telefono, $ingreso, $email, id: $id);

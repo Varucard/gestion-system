@@ -44,12 +44,12 @@ final class TurnoService
     $estado = EstadoTurno::tryFrom((string) ($input['estado'] ?? EstadoTurno::Pendiente->value));
 
     $v = (new Validator())
-      ->check($clienteId > 0 && $this->clientes->find($clienteId) !== null, 'Seleccioná un cliente válido.')
-      ->check($equipoId > 0 && $this->equipos->perteneceACliente($equipoId, $clienteId), 'El equipo no pertenece al cliente seleccionado.')
-      ->check(Validator::fecha($fecha), 'La fecha no es válida.')
-      ->check(Validator::hora($hora), 'La hora no es válida.')
-      ->check($estado !== null, 'El estado del turno no es válido.')
-      ->check($id !== null || !Validator::fecha($fecha) || $fecha >= date('Y-m-d'), 'No se pueden agendar turnos en fechas pasadas.');
+      ->check($clienteId > 0 && $this->clientes->find($clienteId) !== null, 'Seleccioná un cliente válido.', 'cliente_id')
+      ->check($equipoId > 0 && $this->equipos->perteneceACliente($equipoId, $clienteId), 'El equipo no pertenece al cliente seleccionado.', 'equipo_id')
+      ->check(Validator::fecha($fecha), 'La fecha no es válida.', 'fecha')
+      ->check(Validator::hora($hora), 'La hora no es válida.', 'hora')
+      ->check($estado !== null, 'El estado del turno no es válido.', 'estado')
+      ->check($id !== null || !Validator::fecha($fecha) || $fecha >= date('Y-m-d'), 'No se pueden agendar turnos en fechas pasadas.', 'fecha');
     $v->validate();
 
     // El control de cupo y el guardado van bajo un mismo candado por fecha y hora: dos altas
@@ -130,17 +130,17 @@ final class TurnoService
 
     if ($config['validar_horario']) {
       $franja = $horario->franja($fecha);
-      $v->check(!$horario->esFeriado($fecha), 'Esa fecha es feriado.')
-        ->check($horario->esFeriado($fecha) || $franja !== null, 'No atendemos ese día.')
+      $v->check(!$horario->esFeriado($fecha), 'Esa fecha es feriado.', 'fecha')
+        ->check($horario->esFeriado($fecha) || $franja !== null, 'No atendemos ese día.', 'fecha')
         ->check($franja === null || $horario->dentroDeHorario($fecha, $hora), sprintf(
           'La hora está fuera del horario de atención%s.',
           $franja ? " ({$franja['desde']} a {$franja['hasta']})" : ''
-        ));
+        ), 'hora');
     }
 
     $v->check($this->hayCupo($fecha, $hora, $id), $config['cupos_por_horario'] > 1
       ? 'Ese horario ya tiene todos los cupos ocupados.'
-      : 'Ya hay un turno agendado para esa fecha y hora.')
+      : 'Ya hay un turno agendado para esa fecha y hora.', 'hora')
       ->validate();
   }
 

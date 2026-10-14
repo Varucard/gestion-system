@@ -9,7 +9,10 @@
  * Variables disponibles en las plantillas de mensajes:
  *   Generales: {cliente} {equipo} {negocio} {direccion} {telefono} {link_seguimiento}
  *   Turnos:    {fecha} {hora} {link_turno}
- *   Órdenes:   {numero} {total} {saldo} {link_presupuesto} {fecha_proximo}
+ *   Órdenes:   {numero} {total} {saldo} {aviso_saldo} {link_presupuesto} {link_estado} {fecha_proximo}
+ *
+ * Los mensajes whatsapp_* son los que arman los botones de WhatsApp: abren la conversación
+ * con el texto escrito y la persona lo envía desde su teléfono.
  */
 return [
   'negocio' => [
@@ -39,8 +42,15 @@ return [
       'No nos responsabilizamos por la información guardada en el equipo: hacé una copia de seguridad antes de dejarlo.',
     ],
     'mensaje_legal' => 'Este documento no es una factura y no posee validez fiscal.',
+    // Aviso en el presupuesto y la entrega cuando la orden lleva repuestos que trajo el cliente.
+    'garantia_repuestos_cliente' => 'La garantía no cubre los repuestos provistos por el cliente: cubre únicamente la mano de obra.',
     // Si el cliente acepta el presupuesto desde el link, la orden pasa a "En proceso".
     'aceptar_inicia_trabajo' => true,
+    // Alertas del inicio: autos listos sin retirar y presupuestos sin respuesta, después de estos días.
+    'alerta_listo_dias' => 3,
+    'alerta_presupuesto_dias' => 3,
+    // Ancho del papel de la impresora de tickets, en mm (58 u 80).
+    'ticket_ancho' => 80,
   ],
 
   'turnos' => [
@@ -70,10 +80,14 @@ return [
   ],
 
   'notificaciones' => [
-    // Canales a usar, en orden de preferencia. Disponibles: email (whatsapp: próximamente).
+    // Canales de los avisos automáticos. Hay uno solo: email (con MAIL_DSN en .env).
     'canales' => ['email'],
-    // Mostrar el botón manual "WhatsApp" (abre wa.me con el mensaje armado).
+    // Mostrar los botones de WhatsApp (abren wa.me con el mensaje y el link armados).
     'boton_whatsapp_manual' => true,
+    // Cómo abren los botones de WhatsApp en la PC: web (WhatsApp Web, en una pestaña nueva), app
+    // (la app de escritorio instalada: no pregunta nada) o wame (el link universal, que pregunta
+    // en una página). En el celular siempre abren la app.
+    'whatsapp_abrir' => 'web',
     // Código de país para los links de WhatsApp (Argentina: 54).
     'codigo_pais' => '54',
     // Avisar por email al negocio cuando un cliente acepta o rechaza un presupuesto.
@@ -114,8 +128,12 @@ return [
     'whatsapp_presupuesto' => 'Hola {cliente}, te enviamos el presupuesto N° {numero} por $ {total}. Podés aceptarlo desde acá: {link_presupuesto}',
     'whatsapp_presupuesto_modificado' => 'Hola {cliente}, tuvimos que modificar el presupuesto N° {numero} de tu {equipo}. '
       . 'El nuevo total es $ {total}. Revisalo y volvé a aceptarlo desde acá: {link_presupuesto}',
-    'whatsapp_listo' => 'Hola {cliente}, tu {equipo} ya está listo para retirar en {negocio} ({direccion}). Saldo a abonar: $ {saldo}. ¡Te esperamos!',
-    'whatsapp_mantenimiento' => 'Hola {cliente}, se acerca el mantenimiento de tu {equipo} ({fecha_proximo}). ¡Pedí tu turno!',
+    'whatsapp_presupuesto_recordatorio' => 'Hola {cliente}, ¿pudiste ver el presupuesto N° {numero} de tu {equipo} por $ {total}? '
+      . 'Lo podés aceptar desde acá: {link_presupuesto}. Cualquier duda, escribinos.',
+    'whatsapp_listo' => 'Hola {cliente}, tu {equipo} ya está listo para retirar en {negocio} ({direccion}). {aviso_saldo} '
+      . 'El detalle del trabajo está acá: {link_estado} ¡Te esperamos!',
+    'whatsapp_mantenimiento' => 'Hola {cliente}, se acerca el mantenimiento de tu {equipo} ({fecha_proximo}). '
+      . '¿Querés que te demos un turno? Respondé este mensaje o llamanos al {telefono}.',
   ],
 
   'mantenimiento' => [

@@ -76,7 +76,34 @@ final class UsuarioController extends Controller
 
   public function claveForm(Request $request): void
   {
-    $this->render('usuarios/clave', ['title' => 'Cambiar contraseña']);
+    $this->render('usuarios/clave', ['title' => 'Mi contraseña y PIN', 'usuario' => $this->service->obtener((int) $this->auth->id())]);
+  }
+
+  /** PIN para el modo mostrador. */
+  public function definirPin(Request $request): void
+  {
+    $this->verifyCsrf($request);
+
+    try {
+      $this->service->definirPin((int) $this->auth->id(), (string) $request->input('clave_actual_pin', ''), $request->string('pin'), $request->string('pin_confirmacion'));
+      $this->success('Listo: ya podés entrar con tu PIN en los equipos habilitados como mostrador.');
+    } catch (ValidationException $e) {
+      // Los errores van dentro del recuadro del PIN (abajo de la página), no arriba de todo.
+      foreach ($e->errors() as $mensaje) {
+        $this->session->flash('error_pin', $mensaje);
+      }
+    }
+
+    $this->redirect('/perfil/clave#pin');
+  }
+
+  public function quitarPin(Request $request): void
+  {
+    $this->verifyCsrf($request);
+
+    $this->service->quitarPin((int) $this->auth->id());
+    $this->success('Se quitó tu PIN: en el mostrador vas a entrar con usuario y contraseña.');
+    $this->redirect('/perfil/clave');
   }
 
   public function cambiarClave(Request $request): void

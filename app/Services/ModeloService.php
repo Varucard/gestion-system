@@ -47,6 +47,24 @@ final class ModeloService
     }
   }
 
+  /**
+   * Modelo escrito al cargar un equipo: si la marca ya lo tiene (sin importar mayúsculas)
+   * se usa ese; si no, se agrega al catálogo. Así no hace falta ir a Configuración > Modelos.
+   */
+  public function obtenerOCrear(int $marcaId, string $nombre): int
+  {
+    $nombre = preg_replace('/\s+/u', ' ', trim($nombre));
+    $existente = $marcaId > 0 ? $this->modelos->porNombre($marcaId, $nombre) : null;
+    if ($existente !== null) {
+      return (int) $existente['id'];
+    }
+
+    $id = $this->guardar($marcaId, $nombre);
+    $this->auditor->registrar('crear', 'modelo', $id, "Modelo agregado al cargar un equipo: {$nombre}");
+
+    return $id;
+  }
+
   public function eliminar(int $id): void
   {
     $this->obtener($id);

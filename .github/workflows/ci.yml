@@ -37,6 +37,13 @@ jobs:
       - name: Sintaxis PHP
         run: composer lint
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Tests de JavaScript (reglas compartidas con PHP)
+        run: node --test "tests/js/*.test.mjs"
+
       - name: Tests
         run: composer test
         env:

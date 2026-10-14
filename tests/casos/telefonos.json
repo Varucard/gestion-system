@@ -1,0 +1,20 @@
+{
+  "normalizar": [
+    { "entrada": "11 2345-6789", "esperado": "1123456789" },
+    { "entrada": "011 15 2345-6789", "esperado": "1123456789", "nota": "con 0 y 15" },
+    { "entrada": "+54 9 11 2345 6789", "esperado": "1123456789", "nota": "internacional de celular" },
+    { "entrada": "54 11 2345 6789", "esperado": "1123456789" },
+    { "entrada": "0221 15 456 7890", "esperado": "2214567890", "nota": "área de 3 dígitos (La Plata)" },
+    { "entrada": "02944 15 45 6789", "esperado": "2944456789", "nota": "área de 4 dígitos (Bariloche)" },
+    { "entrada": "(0351) 456-7890", "esperado": "3514567890" },
+    { "entrada": "15 2345 6789", "esperado": "1523456789", "nota": "sin código de área: queda con el 15" }
+  ],
+  "valido": [
+    { "entrada": "1123456789", "esperado": true },
+    { "entrada": "2214567890", "esperado": true },
+    { "entrada": "3514567890", "esperado": true },
+    { "entrada": "1523456789", "esperado": false, "nota": "falta el código de área" },
+    { "entrada": "112345678", "esperado": false },
+    { "entrada": "4123456789", "esperado": false }
+  ]
+}

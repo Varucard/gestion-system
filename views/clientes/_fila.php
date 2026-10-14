@@ -4,12 +4,9 @@ $activo = $c['estado'] === 'activo';
 $saldo = $saldos[(int) $c['id']] ?? null;
 
 return [
-  e($c['nombre']),
-  e($c['apellido']),
-  e($c['dni']),
+  '<a href="' . e(url("clientes/{$c['id']}")) . '" class="fw-semibold">' . e("{$c['apellido']}, {$c['nombre']}") . '</a>'
+    . '<div class="small text-muted">DNI ' . e($c['dni']) . ($c['email'] ? ' · ' . e($c['email']) : '') . '</div>',
   e($c['telefono']),
-  e($c['email'] ?? ''),
-  e($c['direccion'] ?? ''),
   $saldo ? '<span class="text-danger">' . importe($saldo) . '</span>' : '—',
   '<span class="badge bg-' . ($activo ? 'success' : 'secondary') . '">' . e($c['estado']) . '</span>',
   '<div class="acciones-fila">' . boton_accion("clientes/{$c['id']}", 'eye', 'Ver') . ' '
@@ -18,8 +15,8 @@ return [
       'action' => "clientes/{$c['id']}/estado",
       'label' => $activo ? 'Desactivar' : 'Activar',
       'class' => $activo ? 'btn-outline-warning' : 'btn-outline-success',
-      'icono' => $activo ? 'pause-circle' : 'play-circle',
-      'confirm' => '¿' . ($activo ? 'Desactivar' : 'Activar') . " al cliente {$c['nombre']} {$c['apellido']}?",
+      'icono' => $activo ? 'slash-circle' : 'check-circle',
+      'confirm' => null, // se hace al toque y se ofrece "Deshacer"
     ])
     . $view->partial('partials/delete_button', [
       'action' => "clientes/{$c['id']}/eliminar",

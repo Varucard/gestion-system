@@ -32,7 +32,7 @@ final class ImageUpload
   /** Directorio storage/uploads/{$carpeta} de la aplicación. */
   public static function en(string $carpeta): self
   {
-    return new self(\App\Core\App::instance()->rootPath . '/storage/uploads/' . $carpeta);
+    return new self(\App\Core\App::instance()->uploadsPath . '/' . $carpeta);
   }
 
   /**

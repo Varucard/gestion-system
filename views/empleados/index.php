@@ -27,8 +27,8 @@
                   'action' => "empleados/{$em['id']}/estado",
                   'label' => $activo ? 'Dar de baja' : 'Reactivar',
                   'class' => $activo ? 'btn-outline-warning' : 'btn-outline-success',
-                  'icono' => $activo ? 'pause-circle' : 'play-circle',
-                  'confirm' => ($activo ? '¿Dar de baja a ' : '¿Reactivar a ') . "{$em['nombre']} {$em['apellido']}?",
+                  'icono' => $activo ? 'slash-circle' : 'check-circle',
+                  'confirm' => null, // se hace al toque y se ofrece "Deshacer"
                 ]) ?>
               </td>
             </tr>

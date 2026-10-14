@@ -36,8 +36,8 @@ final class ServicioService
     $descripcion = Validator::nullable((string) ($input['descripcion'] ?? ''));
 
     (new Validator())
-      ->check(Validator::largo($nombre, 2, 100), 'El nombre del servicio debe tener entre 2 y 100 caracteres.')
-      ->check($precio !== null, 'El precio base debe ser un número mayor o igual a 0.')
+      ->check(Validator::largo($nombre, 2, 100), 'El nombre del servicio debe tener entre 2 y 100 caracteres.', 'nombre')
+      ->check($precio !== null, 'El precio base debe ser un número mayor o igual a 0.', 'precio_base')
       ->validate();
 
     try {

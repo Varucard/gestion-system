@@ -24,8 +24,13 @@ final class EquipoService
     private readonly ClienteRepository $clientes,
     private readonly ModeloRepository $modelos,
     private readonly Auditor $auditor,
+    private readonly ModeloService $modeloService,
+    private readonly MarcaService $marcaService,
   ) {
   }
+
+  /** Prefijo del modelo escrito a mano en el formulario (no está en el catálogo todavía). */
+  public const MODELO_NUEVO = 'nuevo:';
 
   /** @return array<string, mixed> */
   public function obtener(int $id): array
@@ -36,31 +41,74 @@ final class EquipoService
   /** @param array<string, mixed> $input */
   public function crear(array $input): int
   {
-    $equipo = $this->construir($input);
-    $id = $this->persistir($equipo);
-    $this->auditor->registrar('crear', 'equipo', $id, "Equipo registrado: " . self::describir($equipo));
+    // Si el modelo es nuevo y algo del equipo no valida, el modelo tampoco queda creado.
+    return $this->equipos->transaction(function () use ($input) {
+      $equipo = $this->construir($this->conModelo($input));
+      $id = $this->persistir($equipo);
+      $this->auditor->registrar('crear', 'equipo', $id, "Equipo registrado: " . self::describir($equipo));
 
-    return $id;
+      return $id;
+    });
+  }
+
+  /** Normaliza un número de serie como se guarda: mayúsculas y sin espacios. */
+  public static function normalizarSerie(string $serie): string
+  {
+    return strtoupper(preg_replace('/\s/', '', $serie));
+  }
+
+  /** De 3 a 50 letras, números, guiones, puntos o barras (ya normalizado). */
+  public static function serieValida(string $serie): bool
+  {
+    return (bool) preg_match('/^[A-Z0-9\/._-]{3,50}$/', $serie);
+  }
+
+  /**
+   * Resuelve la marca y el modelo escritos a mano ("nuevo:Lenovo", "nuevo:IdeaPad 3"): los busca
+   * en el catálogo o los agrega, y deja sus ids en marca_id y modelo_id. Va dentro de la
+   * transacción de crear()/actualizar(): si el equipo no valida, tampoco quedan creados.
+   *
+   * @param array<string, mixed> $input
+   * @return array<string, mixed>
+   */
+  private function conModelo(array $input): array
+  {
+    $marca = (string) ($input['marca_id'] ?? '');
+    if (str_starts_with($marca, self::MODELO_NUEVO)) {
+      $input['marca_id'] = $this->marcaService->obtenerOCrear(substr($marca, strlen(self::MODELO_NUEVO)));
+    }
+
+    $modelo = (string) ($input['modelo_id'] ?? '');
+    if (!str_starts_with($modelo, self::MODELO_NUEVO)) {
+      return $input;
+    }
+
+    $input['modelo_id'] = $this->modeloService->obtenerOCrear((int) ($input['marca_id'] ?? 0), substr($modelo, strlen(self::MODELO_NUEVO)));
+
+    return $input;
   }
 
   /** @param array<string, mixed> $input */
   public function actualizar(int $id, array $input): void
   {
     $this->obtener($id);
-    $equipo = $this->construir($input, $id);
-    $this->persistir($equipo);
-    $this->auditor->registrar('editar', 'equipo', $id, "Equipo editado: " . self::describir($equipo));
+    $this->equipos->transaction(function () use ($id, $input) {
+      $equipo = $this->construir($this->conModelo($input), $id);
+      $this->persistir($equipo);
+      $this->auditor->registrar('editar', 'equipo', $id, "Equipo editado: " . self::describir($equipo));
+    });
   }
 
   /** @param array<string, mixed> $archivo elemento de $_FILES */
-  public function agregarImagen(int $id, array $archivo, ?string $descripcion, ?int $usuarioId): void
+  /** @param int|null $ordenId la orden en la que se sacó (fotos de la recepción) */
+  public function agregarImagen(int $id, array $archivo, ?string $descripcion, ?int $usuarioId, ?int $ordenId = null): void
   {
     $this->obtener($id);
     $descripcion = Validator::nullable((string) $descripcion);
     (new Validator())->check($descripcion === null || Validator::largo($descripcion, 1, 255), 'La descripción es demasiado larga.')->validate();
 
     $nombre = ImageUpload::en('equipos')->guardar($archivo);
-    $this->equipos->agregarImagen($id, $nombre, $descripcion, $usuarioId);
+    $this->equipos->agregarImagen($id, $nombre, $descripcion, $usuarioId, $ordenId);
   }
 
   /** Elimina una imagen. Devuelve el id del equipo. */
@@ -101,7 +149,10 @@ final class EquipoService
       return $equipo->id;
     } catch (PDOException $e) {
       throw Repository::isDuplicate($e)
-        ? new ValidationException(['El número de serie ya corresponde a otro equipo registrado.'])
+        ? new ValidationException(
+          ['El número de serie ya corresponde a otro equipo registrado.'],
+          ['numero_serie' => 'Ese número de serie ya es de otro equipo.'],
+        )
         : $e;
     }
   }
@@ -119,21 +170,21 @@ final class EquipoService
     $tipo = TipoEquipo::tryFrom(trim((string) ($input['tipo'] ?? '')));
     $marcaId = (int) ($input['marca_id'] ?? 0);
     $modeloId = (int) ($input['modelo_id'] ?? 0);
-    $serie = Validator::nullable(strtoupper(preg_replace('/\s/', '', (string) ($input['numero_serie'] ?? ''))));
+    $serie = Validator::nullable(self::normalizarSerie((string) ($input['numero_serie'] ?? '')));
     $procesador = Validator::nullable((string) ($input['procesador'] ?? ''));
     $memoria = Validator::nullable((string) ($input['memoria'] ?? ''));
     $almacenamiento = Validator::nullable((string) ($input['almacenamiento'] ?? ''));
     $color = Validator::nullable((string) ($input['color'] ?? ''));
 
     (new Validator())
-      ->check($clienteId > 0 && $this->clientes->find($clienteId) !== null, 'Seleccioná un cliente válido.')
-      ->check($tipo !== null, 'Seleccioná el tipo de equipo.')
-      ->check($marcaId > 0 && $modeloId > 0 && $this->modelos->perteneceAMarca($modeloId, $marcaId), 'Seleccioná una marca y un modelo válidos.')
-      ->check($serie === null || (bool) preg_match('/^[A-Z0-9\/._-]{3,50}$/', $serie), 'El número de serie debe tener entre 3 y 50 caracteres (letras, números, guiones, puntos o barras).')
-      ->check($procesador === null || Validator::largo($procesador, 1, 80), 'El procesador no puede superar los 80 caracteres.')
-      ->check($memoria === null || Validator::largo($memoria, 1, 30), 'La memoria no puede superar los 30 caracteres.')
-      ->check($almacenamiento === null || Validator::largo($almacenamiento, 1, 50), 'El almacenamiento no puede superar los 50 caracteres.')
-      ->check($color === null || Validator::largo($color, 1, 30), 'El color no puede superar los 30 caracteres.')
+      ->check($clienteId > 0 && $this->clientes->find($clienteId) !== null, 'Seleccioná un cliente válido.', 'cliente_id')
+      ->check($tipo !== null, 'Seleccioná el tipo de equipo.', 'tipo')
+      ->check($marcaId > 0 && $modeloId > 0 && $this->modelos->perteneceAMarca($modeloId, $marcaId), 'Seleccioná una marca y un modelo válidos.', 'modelo_id')
+      ->check($serie === null || self::serieValida($serie), 'El número de serie debe tener entre 3 y 50 caracteres (letras, números, guiones, puntos o barras).', 'numero_serie')
+      ->check($procesador === null || Validator::largo($procesador, 1, 80), 'El procesador no puede superar los 80 caracteres.', 'procesador')
+      ->check($memoria === null || Validator::largo($memoria, 1, 30), 'La memoria no puede superar los 30 caracteres.', 'memoria')
+      ->check($almacenamiento === null || Validator::largo($almacenamiento, 1, 50), 'El almacenamiento no puede superar los 50 caracteres.', 'almacenamiento')
+      ->check($color === null || Validator::largo($color, 1, 30), 'El color no puede superar los 30 caracteres.', 'color')
       ->validate();
 
     return new Equipo(
