@@ -1,0 +1,40 @@
+# Para correr este sistema en la misma VPS que Mecánica Abel, usando su MySQL en lugar de uno
+# propio (es lo que más memoria ocupa). Se SUMA al docker-compose.override.yml de la carpeta de
+# Abel (abel_mecanica/), con este repo clonado al lado (../gestion-system). Allá no se usa el
+# docker-compose.yml de este repo.
+#
+# Antes, una sola vez: crear la base y el usuario en el MySQL de Abel (ver README, "En la misma
+# VPS que Mecánica Abel"), con los mismos DB_DATABASE, DB_USERNAME y DB_PASSWORD de nuestro .env
+# y DB_HOST=database.
+services:
+  gestion:
+    # La misma imagen que Abel (el Dockerfile es igual); el arranque es el de este repo.
+    build:
+      context: ./
+    restart: unless-stopped
+    entrypoint: ["sh", "docker/entrypoint.sh"]
+    command: ["apache2-foreground"]
+    ports:
+      - "127.0.0.1:8060:80"
+    env_file: ../gestion-system/.env
+    volumes:
+      - ../gestion-system:/var/www/html
+    depends_on:
+      database:
+        condition: service_healthy
+
+  gestion-tareas:
+    build:
+      context: ./
+    restart: unless-stopped
+    user: www-data
+    env_file: ../gestion-system/.env
+    environment:
+      SKIP_SETUP: "1"
+    volumes:
+      - ../gestion-system:/var/www/html
+    depends_on:
+      - gestion
+    command: >
+      sh -c 'until [ -f vendor/autoload.php ]; do sleep 5; done;
+             while true; do php bin/tareas.php; sleep 900; done'
