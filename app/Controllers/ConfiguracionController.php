@@ -63,7 +63,7 @@ final class ConfiguracionController extends Controller
           'registro' => $this->registro->recientes(50),
         ],
         'turnos' => ['horario' => $this->service->horario()],
-        'backups' => ['archivos' => $this->backups->listar()],
+        'backups' => ['archivos' => $this->backups->listar(), 'cifrados' => $this->backups->cifrados()],
         default => [],
       },
     ]);
@@ -104,7 +104,7 @@ final class ConfiguracionController extends Controller
     $ruta = $this->backups->ruta((string) $request->query('archivo', '')) ?? throw new NotFoundException('Backup inexistente.');
     $this->auditor->registrar('descargar_backup', 'sistema', null, 'Descarga del backup ' . basename($ruta));
 
-    header('Content-Type: application/gzip');
+    header('Content-Type: ' . (str_ends_with($ruta, '.cif') ? 'application/octet-stream' : 'application/gzip'));
     header('Content-Disposition: attachment; filename="' . basename($ruta) . '"');
     header('Content-Length: ' . filesize($ruta));
     readfile($ruta);

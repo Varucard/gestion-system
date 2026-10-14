@@ -456,6 +456,8 @@
    * se cierra la pestaña o se corta la luz, al volver se recupera (con aviso y "Descartar").
    * Se borra al enviar el formulario, al salir del sistema o a las 8 h: son datos de clientes
    * y no deben quedar en la PC. Si el formulario volvió con errores, manda lo del servidor.
+   * Cada borrador es de quien lo escribió: si la sesión venció sola (sin "Salir") y entra otra
+   * persona en esa PC, los borradores del anterior se borran sin mostrarse.
    */
   const PREFIJO_BORRADOR = 'borrador:';
   const VIDA_BORRADOR = 8 * 60 * 60 * 1000;
@@ -463,11 +465,21 @@
   const NO_GUARDAR = ['_token', 'confirmar_otra', 'deshaciendo', 'firma'];
   const almacen = (() => { try { return window.localStorage; } catch (e) { return null; } })();
 
+  const usuarioActual = document.body.dataset.usuario || '';
+
   function borrarBorradores() {
     if (!almacen) {
       return;
     }
     Object.keys(almacen).filter((k) => k.startsWith(PREFIJO_BORRADOR)).forEach((k) => almacen.removeItem(k));
+  }
+
+  if (almacen && usuarioActual) {
+    Object.keys(almacen).filter((k) => k.startsWith(PREFIJO_BORRADOR)).forEach((k) => {
+      let deOtro = true;
+      try { deOtro = JSON.parse(almacen.getItem(k) || '{}').u !== usuarioActual; } catch (e) { deOtro = true; }
+      if (deOtro) almacen.removeItem(k);
+    });
   }
 
   // Al salir del sistema no queda ningún borrador.
@@ -533,7 +545,7 @@
     const guardar = () => {
       const datos = [...new FormData(form).entries()]
         .filter(([nombre, valor]) => !NO_GUARDAR.includes(nombre) && typeof valor === 'string');
-      try { almacen.setItem(clave, JSON.stringify({ t: Date.now(), datos })); } catch (e) { /* lleno o bloqueado */ }
+      try { almacen.setItem(clave, JSON.stringify({ t: Date.now(), u: usuarioActual, datos })); } catch (e) { /* lleno o bloqueado */ }
     };
     let demora = null;
     const guardarEnUnRato = () => { clearTimeout(demora); demora = setTimeout(guardar, 500); };

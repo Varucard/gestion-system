@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Enums\Rol;
+use App\Exceptions\CuentaBloqueadaException;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Repositories\IntentoRepository;
@@ -53,7 +54,8 @@ final class UsuarioService
   {
     $usuario = mb_strtolower(trim($usuario));
 
-    if ($this->intentos->bloqueado(self::AMBITO, $usuario, $ip, self::MINUTOS_BLOQUEO, self::MAX_INTENTOS, self::MAX_INTENTOS_IP, self::MAX_INTENTOS_USUARIO)) {
+    // El intento se anota antes de verificar y se borra si acierta (ver anotarYVerificar).
+    if ($this->intentos->anotarYVerificar(self::AMBITO, $usuario, $ip, self::MINUTOS_BLOQUEO, self::MAX_INTENTOS, self::MAX_INTENTOS_IP, self::MAX_INTENTOS_USUARIO)) {
       throw new ValidationException([
         sprintf('Demasiados intentos fallidos. Esperá %d minutos e intentá de nuevo.', self::MINUTOS_BLOQUEO),
       ]);
@@ -69,7 +71,6 @@ final class UsuarioService
     $valida = password_verify($clave, $hash);
 
     if ($fila === null || !$valida || !$fila['activo']) {
-      $this->intentos->registrar(self::AMBITO, $usuario, $ip);
       $this->logger->warning('Intento de ingreso fallido para "{usuario}"', ['usuario' => $usuario, 'ip' => $ip]);
       throw new ValidationException(['Usuario o contraseña incorrectos.']);
     }
@@ -83,6 +84,23 @@ final class UsuarioService
     unset($fila['password_hash']);
 
     return $fila;
+  }
+
+  /**
+   * Alta del primer administrador desde /instalacion. El control "no hay usuarios" y el alta van
+   * bajo un mismo candado: dos pedidos a la vez no crean dos administradores.
+   *
+   * @param array<string, mixed> $input
+   */
+  public function crearPrimerAdministrador(array $input): int
+  {
+    return $this->usuarios->conCandado('instalacion', function () use ($input) {
+      if ($this->hayUsuarios()) {
+        throw new NotFoundException('La instalación ya fue realizada.');
+      }
+
+      return $this->crear($input, Rol::Administrador);
+    });
   }
 
   /** @param array<string, mixed> $input */
@@ -143,12 +161,10 @@ final class UsuarioService
     }
   }
 
-  public function cambiarClave(int $id, string $actual, string $nueva, string $confirmacion): void
+  public function cambiarClave(int $id, string $actual, string $nueva, string $confirmacion, string $ip): void
   {
     $usuario = $this->obtener($id);
-    $fila = $this->usuarios->findParaLogin($usuario['usuario']);
-
-    (new Validator())->check(password_verify($actual, $fila['password_hash']), 'La contraseña actual no es correcta.')->validate();
+    $this->verificarClaveActual($usuario['usuario'], $actual, $ip);
     $this->validarClave($nueva, $confirmacion);
 
     $this->usuarios->setPassword($id, password_hash($nueva, PASSWORD_DEFAULT));
@@ -159,13 +175,12 @@ final class UsuarioService
    * PIN para entrar en el modo mostrador. Se pide la contraseña: quien encuentre la sesión
    * abierta no puede ponerse un PIN para entrar después como esa persona.
    */
-  public function definirPin(int $id, string $claveActual, string $pin, string $confirmacion): void
+  public function definirPin(int $id, string $claveActual, string $pin, string $confirmacion, string $ip): void
   {
     $usuario = $this->obtener($id);
-    $fila = $this->usuarios->findParaLogin($usuario['usuario']);
+    $this->verificarClaveActual($usuario['usuario'], $claveActual, $ip);
 
     (new Validator())
-      ->check(password_verify($claveActual, $fila['password_hash']), 'La contraseña actual no es correcta.')
       ->check(MostradorService::pinValido($pin), sprintf('El PIN tiene que ser de %d números y no uno fácil de adivinar (como 1234, 0000 o 1212).', MostradorService::LARGO_PIN))
       ->check($pin === $confirmacion, 'Los dos PIN no coinciden.')
       ->validate();
@@ -185,6 +200,27 @@ final class UsuarioService
   public function desbloquear(string $usuario): void
   {
     $this->intentos->limpiar(self::AMBITO, mb_strtolower($usuario));
+  }
+
+  /**
+   * La contraseña actual, con la sesión abierta. Cuenta como un intento de login (mismos
+   * límites): si no, alguien con una sesión ajena abierta —o entrando con PIN en el mostrador—
+   * podría probar contraseñas acá sin límite y, al acertar, entrar como esa persona.
+   */
+  private function verificarClaveActual(string $usuario, string $clave, string $ip): void
+  {
+    if ($this->intentos->anotarYVerificar(self::AMBITO, $usuario, $ip, self::MINUTOS_BLOQUEO, self::MAX_INTENTOS, self::MAX_INTENTOS_IP, self::MAX_INTENTOS_USUARIO)) {
+      $this->logger->warning('Demasiadas contraseñas equivocadas con la sesión abierta de "{usuario}": se cierra la sesión', ['usuario' => $usuario, 'ip' => $ip]);
+      throw new CuentaBloqueadaException();
+    }
+
+    $fila = $this->usuarios->findParaLogin($usuario);
+    if ($fila === null || !password_verify($clave, $fila['password_hash'])) {
+      $this->logger->warning('Contraseña actual equivocada para "{usuario}"', ['usuario' => $usuario, 'ip' => $ip]);
+      throw new ValidationException(['La contraseña actual no es correcta.']);
+    }
+
+    $this->intentos->limpiar(self::AMBITO, $usuario);
   }
 
   /** @return array{0: string, 1: string, 2: Rol} */

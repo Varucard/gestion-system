@@ -20,7 +20,7 @@
 <?php // Atajos de teclado (app.js): tecla => [destino, descripción]. "?" muestra la lista. ?>
 <?php $atajos = ['n' => [url('recepcion'), 'Llegó un equipo'], 't' => [url('turnos/crear'), 'Nuevo turno'], 'o' => [url('ordenes'), 'Ver órdenes'], 'i' => [url('/'), 'Ir al inicio'], 'a' => [$ayuda, 'Ayuda de esta pantalla']]; ?>
 <body class="con-barra-inferior" data-seccion="<?= e(current_section()) ?>" data-atajos="<?= e(json_encode($atajos, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) ?>"
-  data-volvio-con-errores="<?= session()->hasOldInput() ? '1' : '0' ?>"
+  data-volvio-con-errores="<?= session()->hasOldInput() ? '1' : '0' ?>" data-usuario="<?= (int) auth()->id() ?>"
   <?php // El pedido anterior salió bien (dejó un aviso de éxito): app.js borra el borrador de ese formulario. ?>
   <?php $anteriores = session()->messages(); ?>
   data-exito="<?= !empty($anteriores['success']) || !empty($anteriores['deshacer']) || !empty($anteriores['aviso']) ? '1' : '0' ?>"

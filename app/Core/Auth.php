@@ -14,6 +14,8 @@ final class Auth
 {
   private const KEY = '_auth';
   private const INACTIVIDAD_MAXIMA = 8 * 3600;
+  /** Aunque se use todo el tiempo, a las 12 h de entrar se vuelve a pedir la contraseña. */
+  private const DURACION_MAXIMA = 12 * 3600;
 
   /** Id del usuario ya verificado contra la base en este request. */
   private ?int $verificadoId = null;
@@ -41,8 +43,22 @@ final class Auth
       'usuario' => (string) $usuario['usuario'],
       'rol' => (string) $usuario['rol'],
       'actividad' => time(),
+      'inicio' => time(),
+      'huella' => $this->usuarios->huella((int) $usuario['id']),
       'mostrador' => $mostrador,
     ];
+  }
+
+  /**
+   * La sesión actual cambió su propia contraseña: sigue abierta (las demás de ese usuario se
+   * cortan solas, porque su huella ya no coincide).
+   */
+  public function renovarHuella(): void
+  {
+    if (isset($_SESSION[self::KEY])) {
+      $_SESSION[self::KEY]['huella'] = $this->usuarios->huella((int) $_SESSION[self::KEY]['id']);
+      $this->verificadoId = null;
+    }
   }
 
   /** ¿La sesión es de un mostrador (se entró con PIN)? */
@@ -69,17 +85,19 @@ final class Auth
     }
 
     $maxima = !empty($auth['mostrador']) ? \App\Services\MostradorService::INACTIVIDAD : self::INACTIVIDAD_MAXIMA;
-    if (time() - $auth['actividad'] > $maxima) {
+    // Las sesiones de antes de la huella (sin "inicio") se cierran una vez: se vuelve a entrar.
+    if (time() - $auth['actividad'] > $maxima || time() - ($auth['inicio'] ?? 0) > self::DURACION_MAXIMA) {
       $this->logout();
 
       return null;
     }
 
     // Una vez por request se revalida contra la base: si el usuario fue desactivado o
-    // eliminado se corta la sesión, y un cambio de rol o de nombre rige de inmediato.
+    // eliminado, o si cambió su contraseña desde otra sesión (o se la cambió un administrador),
+    // se corta la sesión; un cambio de rol o de nombre rige de inmediato.
     if ($this->verificadoId !== $auth['id']) {
-      $usuario = $this->usuarios->find((int) $auth['id']);
-      if ($usuario === null || !(int) $usuario['activo']) {
+      $usuario = $this->usuarios->findParaSesion((int) $auth['id']);
+      if ($usuario === null || !(int) $usuario['activo'] || !hash_equals((string) $usuario['huella'], (string) ($auth['huella'] ?? ''))) {
         $this->logout();
 
         return null;

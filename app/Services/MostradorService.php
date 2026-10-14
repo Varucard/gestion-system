@@ -92,13 +92,11 @@ final class MostradorService
   public function entrar(array $mostrador, int $usuarioId, string $pin, string $ip): array
   {
     $clave = "{$mostrador['id']}:{$usuarioId}";
-    if ($this->intentos->bloqueado(self::AMBITO, $clave, $ip, self::MINUTOS_BLOQUEO, self::MAX_INTENTOS, self::MAX_INTENTOS_IP, self::MAX_INTENTOS_USUARIO)) {
+    // El intento se anota antes de verificar (y se borra si acierta): varios pedidos a la vez no
+    // pasan todos el control antes de que se registre el primer error.
+    if ($this->intentos->anotarYVerificar(self::AMBITO, $clave, $ip, self::MINUTOS_BLOQUEO, self::MAX_INTENTOS, self::MAX_INTENTOS_IP, self::MAX_INTENTOS_USUARIO)) {
       throw new ValidationException([sprintf('Demasiados PIN equivocados. Esperá %d minutos o entrá con tu usuario y contraseña.', self::MINUTOS_BLOQUEO)]);
     }
-
-    // El intento se anota antes de verificar (y se borra si acierta): varios pedidos a la vez no
-    // pasan todos el control de arriba antes de que se registre el primer error.
-    $this->intentos->registrar(self::AMBITO, $clave, $ip);
     $hash = $this->usuarios->pinHash($usuarioId);
     if ($hash === null || !password_verify($pin, $hash)) {
       $this->logger->warning('PIN equivocado en el mostrador "{mostrador}"', ['mostrador' => $mostrador['nombre'], 'usuario_id' => $usuarioId, 'ip' => $ip]);

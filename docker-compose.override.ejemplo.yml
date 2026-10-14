@@ -6,6 +6,9 @@
 # Antes, una sola vez: crear la base y el usuario en el MySQL de Abel (ver README, "En la misma
 # VPS que Mecánica Abel"), con los mismos DB_DATABASE, DB_USERNAME y DB_PASSWORD de nuestro .env
 # y DB_HOST=database.
+#
+# La red "pcfighter" la declara el ejemplo del sitio de PC Fighter: por ella el sitio consulta
+# "Seguí tu servicio" en http://gestion. Si el sitio no corre en este compose, sacarla de abajo.
 services:
   gestion:
     # La misma imagen que Abel (el Dockerfile es igual); el arranque es el de este repo.
@@ -17,8 +20,15 @@ services:
     ports:
       - "127.0.0.1:8060:80"
     env_file: ../gestion-system/.env
+    environment:
+      # La clave de root de MySQL no hace falta en la aplicación: aunque quede en nuestro .env
+      # (sale de .env.example), acá se pisa vacía.
+      MYSQL_ROOT_PASSWORD: ""
     volumes:
       - ../gestion-system:/var/www/html
+    networks:
+      - default
+      - pcfighter
     depends_on:
       database:
         condition: service_healthy
@@ -31,6 +41,7 @@ services:
     env_file: ../gestion-system/.env
     environment:
       SKIP_SETUP: "1"
+      MYSQL_ROOT_PASSWORD: ""
     volumes:
       - ../gestion-system:/var/www/html
     depends_on:

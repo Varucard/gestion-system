@@ -28,6 +28,21 @@ final class UsuarioRepository extends Repository
     return $this->fetchOne('SELECT ' . self::COLUMNAS . ', password_hash FROM usuarios WHERE usuario = ?', [$usuario]);
   }
 
+  /**
+   * Huella de la contraseña actual (un hash del hash): la sesión la guarda al entrar y, si la
+   * contraseña cambia, deja de coincidir y la sesión se corta (ver Auth).
+   */
+  public function huella(int $id): ?string
+  {
+    return $this->fetchOne('SELECT LEFT(SHA2(password_hash, 256), 32) AS huella FROM usuarios WHERE id = ?', [$id])['huella'] ?? null;
+  }
+
+  /** @return array<string, mixed>|null lo de find() más la huella de la contraseña */
+  public function findParaSesion(int $id): ?array
+  {
+    return $this->fetchOne('SELECT ' . self::COLUMNAS . ', LEFT(SHA2(password_hash, 256), 32) AS huella FROM usuarios WHERE id = ?', [$id]);
+  }
+
   public function contar(): int
   {
     return (int) $this->fetchOne('SELECT COUNT(*) AS total FROM usuarios')['total'];

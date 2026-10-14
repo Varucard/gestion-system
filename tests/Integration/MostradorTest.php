@@ -23,7 +23,7 @@ final class MostradorTest extends HttpTestCase
   {
     $usuarios = $this->make(UsuarioService::class);
     $id = $usuarios->crear(['nombre' => 'Hernán', 'usuario' => 'hernan', 'rol' => 'empleado', 'clave' => 'clave-segura', 'clave_confirmacion' => 'clave-segura']);
-    $usuarios->definirPin($id, 'clave-segura', '4826', '4826');
+    $usuarios->definirPin($id, 'clave-segura', '4826', '4826', '127.0.0.1');
     $token = $this->make(MostradorService::class)->habilitar('PC del mostrador', null);
     $_COOKIE[MostradorService::COOKIE] = $token;
 
@@ -86,7 +86,7 @@ final class MostradorTest extends HttpTestCase
     $this->assertTrue(MostradorService::pinValido('4826'));
 
     $id = $this->make(UsuarioService::class)->crear(['nombre' => 'Ana', 'usuario' => 'ana', 'rol' => 'empleado', 'clave' => 'clave-segura', 'clave_confirmacion' => 'clave-segura']);
-    $this->assertValidationError(fn() => $this->make(UsuarioService::class)->definirPin($id, 'otra-clave', '4826', '4826'), 'contraseña actual');
+    $this->assertValidationError(fn() => $this->make(UsuarioService::class)->definirPin($id, 'otra-clave', '4826', '4826', '127.0.0.1'), 'contraseña actual');
   }
 
   public function testElAdministradorHabilitaYQuitaEquipos(): void
@@ -107,7 +107,7 @@ final class MostradorTest extends HttpTestCase
   {
     $usuarios = $this->make(UsuarioService::class);
     $id = $usuarios->crear(['nombre' => 'Ana', 'usuario' => 'ana', 'rol' => 'administrador', 'clave' => 'clave-segura', 'clave_confirmacion' => 'clave-segura']);
-    $usuarios->definirPin($id, 'clave-segura', '4826', '4826');
+    $usuarios->definirPin($id, 'clave-segura', '4826', '4826', '127.0.0.1');
     $_COOKIE[MostradorService::COOKIE] = $this->make(MostradorService::class)->habilitar('PC', null);
     $this->pedir('POST', '/login/pin', ['usuario_id' => $id, 'pin' => '4826']);
 

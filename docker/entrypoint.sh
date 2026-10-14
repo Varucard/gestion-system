@@ -10,9 +10,18 @@ fi
 # composer.lock cambió con el último "git pull" (se agregó o actualizó una librería).
 # Se compara el contenido de composer.lock (no las fechas: git y Windows las cambian solas)
 # con el que se instaló la última vez. Si falla (sin red), avisa y arranca con lo que hay.
-if [ ! -f vendor/autoload.php ] || [ "$(sha1sum composer.lock | cut -d' ' -f1)" != "$(cat vendor/.composer-lock.sha1 2>/dev/null)" ]; then
-  if composer install --no-interaction --prefer-dist; then
-    sha1sum composer.lock | cut -d' ' -f1 > vendor/.composer-lock.sha1
+# En producción no se instalan las de desarrollo (PHPUnit y compañía); el marcador guarda también
+# el modo, así que cambiar ENTORNO reinstala.
+if [ "${ENTORNO:-produccion}" = "desarrollo" ]; then
+  modo=desarrollo; opciones=""
+else
+  modo=produccion; opciones="--no-dev --optimize-autoloader"
+fi
+marcador="$(sha1sum composer.lock | cut -d' ' -f1) $modo"
+if [ ! -f vendor/autoload.php ] || [ "$marcador" != "$(cat vendor/.composer-lock.sha1 2>/dev/null)" ]; then
+  # shellcheck disable=SC2086
+  if composer install --no-interaction --prefer-dist $opciones; then
+    echo "$marcador" > vendor/.composer-lock.sha1
   else
     echo "AVISO: no se pudieron instalar las dependencias de Composer." >&2
   fi

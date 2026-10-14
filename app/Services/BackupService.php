@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Core\Env;
 use App\Core\Logger;
+use App\Support\CifradoBackup;
 use DateTimeImmutable;
 use PDO;
 use PharData;
@@ -20,11 +21,14 @@ use Throwable;
  * partir de la hora configurada y conserva los últimos N. Si BACKUP_COPIA_DIR
  * apunta a otra carpeta (un disco externo o una carpeta sincronizada con la
  * nube, montada en el contenedor), además se copian ahí.
+ *
+ * Con BACKUP_CLAVE_PUBLICA cada backup se cifra (queda como .cif) y el original se borra:
+ * para leerlo hace falta la clave privada, que no está en el servidor (ver bin/backup.php).
  */
 final class BackupService
 {
   private const FILAS_POR_INSERT = 200;
-  public const PATRON = '/^(db|archivos)_\d{4}-\d{2}-\d{2}_\d{6}\.(sql\.gz|tar\.gz)$/';
+  public const PATRON = '/^(db|archivos)_\d{4}-\d{2}-\d{2}_\d{6}\.(sql\.gz|tar\.gz)(\.cif)?$/';
 
   private readonly string $directorio;
   private readonly string $raiz;
@@ -47,7 +51,7 @@ final class BackupService
 
     return $config['habilitado']
       && $ahora->format('H:i') >= $config['hora']
-      && glob($this->directorio . '/db_' . $ahora->format('Y-m-d') . '_*.sql.gz') === [];
+      && glob($this->directorio . '/db_' . $ahora->format('Y-m-d') . '_*.sql.gz*') === [];
   }
 
   /**
@@ -66,6 +70,7 @@ final class BackupService
     if (($archivos = $this->empaquetarArchivos("archivos_{$sello}.tar.gz")) !== null) {
       $creados[] = $archivos;
     }
+    $creados = $this->cifrar($creados);
 
     $conservar = (int) $this->configuracion->seccion('backups')['conservar'];
     $borrados = $this->rotar($conservar);
@@ -82,7 +87,7 @@ final class BackupService
   public function listar(): array
   {
     $archivos = [];
-    foreach (glob($this->directorio . '/*.gz') ?: [] as $ruta) {
+    foreach (glob($this->directorio . '/*') ?: [] as $ruta) {
       if (preg_match(self::PATRON, basename($ruta))) {
         $archivos[] = ['nombre' => basename($ruta), 'tamanio' => (int) filesize($ruta), 'fecha' => date('Y-m-d H:i', (int) filemtime($ruta))];
       }
@@ -98,6 +103,47 @@ final class BackupService
     $ruta = $this->directorio . '/' . $nombre;
 
     return preg_match(self::PATRON, $nombre) && is_file($ruta) ? $ruta : null;
+  }
+
+  /** ¿Los backups se guardan cifrados? */
+  public function cifrados(): bool
+  {
+    return Env::get('BACKUP_CLAVE_PUBLICA') !== null;
+  }
+
+  /**
+   * Cifra los backups recién creados con BACKUP_CLAVE_PUBLICA (si está) y borra los originales.
+   * Si el cifrado falla, se borra también el original: un backup en claro, cuando se pidió
+   * cifrarlos, es justo lo que no tiene que quedar.
+   *
+   * @param list<string> $creados
+   * @return list<string>
+   */
+  private function cifrar(array $creados): array
+  {
+    $clave = Env::get('BACKUP_CLAVE_PUBLICA');
+    if ($clave === null) {
+      return $creados;
+    }
+
+    $cifrados = [];
+    try {
+      foreach ($creados as $nombre) {
+        $ruta = "{$this->directorio}/{$nombre}";
+        CifradoBackup::cifrar($ruta, "{$ruta}.cif.tmp", $clave);
+        rename("{$ruta}.cif.tmp", "{$ruta}.cif");
+        @unlink($ruta);
+        $cifrados[] = "{$nombre}.cif";
+      }
+    } catch (Throwable $e) {
+      foreach ($creados as $nombre) {
+        @unlink("{$this->directorio}/{$nombre}");
+        @unlink("{$this->directorio}/{$nombre}.cif.tmp");
+      }
+      throw new RuntimeException('No se pudo cifrar el backup: ' . $e->getMessage(), 0, $e);
+    }
+
+    return $cifrados;
   }
 
   /**
@@ -134,7 +180,7 @@ final class BackupService
     $directorio ??= $this->directorio;
     $borrados = 0;
     foreach (['db', 'archivos'] as $tipo) {
-      $lista = glob("{$directorio}/{$tipo}_*.gz") ?: [];
+      $lista = array_values(array_filter(glob("{$directorio}/{$tipo}_*") ?: [], fn($r) => preg_match(self::PATRON, basename($r))));
       rsort($lista);
       foreach (array_slice($lista, max(1, $cantidad)) as $viejo) {
         $borrados += (int) @unlink($viejo);

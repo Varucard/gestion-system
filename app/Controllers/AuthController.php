@@ -6,10 +6,10 @@ namespace App\Controllers;
 
 use App\Core\Auth;
 use App\Core\Controller;
+use App\Core\Env;
 use App\Core\Request;
 use App\Core\Session;
 use App\Core\View;
-use App\Enums\Rol;
 use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Services\UsuarioService;
@@ -106,12 +106,17 @@ final class AuthController extends Controller
     $this->redirect('/login');
   }
 
-  /** Alta del primer administrador: solo disponible mientras no haya usuarios. */
+  /**
+   * Alta del primer administrador: solo mientras no haya usuarios, y con el código de
+   * INSTALACION_TOKEN del .env (p. ej. el de `openssl rand -hex 16`). Sin código, la pantalla
+   * explica cómo crearlo por consola (bin/usuario.php crear): si no, el primero que llegara a la
+   * dirección pública antes que el dueño se quedaría con el sistema.
+   */
   public function setupForm(Request $request): void
   {
     $this->soloSinUsuarios();
 
-    echo $this->view->render('auth/instalacion', ['title' => 'Primer ingreso'], 'layouts/guest');
+    echo $this->view->render('auth/instalacion', ['title' => 'Primer ingreso', 'conToken' => self::tokenInstalacion() !== ''], 'layouts/guest');
   }
 
   public function setup(Request $request): void
@@ -119,8 +124,16 @@ final class AuthController extends Controller
     $this->verifyCsrf($request);
     $this->soloSinUsuarios();
 
+    $token = self::tokenInstalacion();
+    if ($token === '') {
+      $this->redirect('/instalacion');
+    }
+    if (!hash_equals($token, (string) $request->input('token_instalacion', ''))) {
+      $this->backWithErrors('/instalacion', new ValidationException(['El código de instalación no es correcto.'], ['token_instalacion' => 'El código de instalación no es correcto.']), $request);
+    }
+
     try {
-      $id = $this->usuarios->crear($request->all(), Rol::Administrador);
+      $id = $this->usuarios->crearPrimerAdministrador($request->all());
     } catch (ValidationException $e) {
       $this->backWithErrors('/instalacion', $e, $request);
     }
@@ -128,6 +141,11 @@ final class AuthController extends Controller
     $this->auth->login($this->usuarios->obtener($id));
     $this->success('Administrador creado. ¡Bienvenido! Seguí estos pasos para dejar el sistema listo.');
     $this->redirect('/primeros-pasos');
+  }
+
+  private static function tokenInstalacion(): string
+  {
+    return trim((string) Env::get('INSTALACION_TOKEN', ''));
   }
 
   private function soloSinUsuarios(): void

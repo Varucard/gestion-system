@@ -23,6 +23,12 @@
   configuración (<code>archivos_*.tar.gz</code>). Para restaurar: <code>scripts/restore.sh</code> (ver README).
   Conviene copiar periódicamente algún backup fuera del servidor.
 </p>
+<?php if ($cifrados ?? false): ?>
+  <p class="small text-muted">
+    <?= icono('lock') ?> Los backups se guardan <strong>cifrados</strong> (<code>.cif</code>): para restaurarlos hace falta
+    la clave privada, que no está en el servidor. Sin ella no se pueden recuperar.
+  </p>
+<?php endif; ?>
 
 <h5 class="mt-4">Backups disponibles</h5>
 <?php if ($archivos === []): ?>
