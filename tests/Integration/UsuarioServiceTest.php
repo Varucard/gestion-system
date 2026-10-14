@@ -7,6 +7,8 @@ namespace Tests\Integration;
 use App\Core\Auth;
 use App\Core\Session;
 use App\Enums\Rol;
+use App\Exceptions\CuentaBloqueadaException;
+use App\Exceptions\NotFoundException;
 use App\Exceptions\ValidationException;
 use App\Repositories\UsuarioRepository;
 use App\Services\UsuarioService;
@@ -127,7 +129,7 @@ final class UsuarioServiceTest extends IntegrationTestCase
     $id = $this->crear('tecnico');
     // Cada request arma su propio Auth sobre la misma sesión.
     $request = fn() => new Auth($this->make(Session::class), $this->make(UsuarioRepository::class));
-    $_SESSION = ['_auth' => ['id' => $id, 'nombre' => 'Prueba', 'usuario' => 'tecnico', 'rol' => 'empleado', 'actividad' => time()]];
+    $request()->login($this->usuarios->obtener($id));
     $this->assertFalse($request()->esAdministrador());
 
     // Un cambio de rol rige en el request siguiente, sin volver a iniciar sesión.
@@ -162,5 +164,91 @@ final class UsuarioServiceTest extends IntegrationTestCase
       $fallar("usuario{$i}", '7.7.7.7');
     }
     $this->assertValidationError(fn() => $this->usuarios->autenticar('tecnico', 'clave-segura', '7.7.7.7'), 'Demasiados intentos');
+  }
+
+  public function testCambiarLaClaveCortaLasOtrasSesiones(): void
+  {
+    $id = $this->crear('tecnico');
+    $request = fn() => new Auth($this->make(Session::class), $this->make(UsuarioRepository::class));
+
+    // Una sesión abierta en otra PC...
+    $request()->login($this->usuarios->obtener($id));
+    $otraPc = $_SESSION;
+    // ...y la de acá, que cambia la clave: esta sigue abierta. Como en un pedido real, la sesión
+    // ya se verificó al entrar (el router) antes de que el controlador cambie la clave.
+    $request()->login($this->usuarios->obtener($id));
+    $auth = $this->make(Auth::class);
+    $this->assertNotNull($auth->user());
+    $this->usuarios->cambiarClave($id, 'clave-segura', 'clave-nueva-1', 'clave-nueva-1', '10.0.0.1');
+    $auth->renovarHuella();
+    $this->assertNotNull($request()->user());
+
+    // La de la otra PC se corta en su próximo pedido.
+    $_SESSION = $otraPc;
+    $this->assertNull($request()->user());
+
+    // Lo mismo si se la cambia un administrador (o bin/usuario.php).
+    $request()->login($this->usuarios->obtener($id));
+    $this->usuarios->actualizar($id, ['nombre' => 'Prueba', 'usuario' => 'tecnico', 'rol' => 'empleado', 'activo' => 1, 'clave' => 'clave-nueva-2', 'clave_confirmacion' => 'clave-nueva-2'], 999);
+    $this->assertNull($request()->user());
+    $_SESSION = [];
+  }
+
+  public function testLaSesionVenceALas12HorasAunqueSeUse(): void
+  {
+    $id = $this->crear('tecnico');
+    $request = fn() => new Auth($this->make(Session::class), $this->make(UsuarioRepository::class));
+
+    $request()->login($this->usuarios->obtener($id));
+    $_SESSION['_auth']['inicio'] = time() - 11 * 3600;
+    $this->assertNotNull($request()->user());
+
+    $_SESSION['_auth']['inicio'] = time() - 13 * 3600;
+    $this->assertNull($request()->user());
+    $_SESSION = [];
+  }
+
+  public function testLaClaveActualTieneElMismoLimiteQueElLogin(): void
+  {
+    $id = $this->crear('tecnico');
+
+    for ($i = 0; $i < UsuarioService::MAX_INTENTOS; $i++) {
+      $this->assertValidationError(fn() => $this->usuarios->cambiarClave($id, "mal{$i}", 'clave-nueva-1', 'clave-nueva-1', '10.0.0.5'), 'contraseña actual');
+    }
+
+    // Agotados los intentos, ni con la clave correcta: se corta la sesión (lo hace el controlador).
+    try {
+      $this->usuarios->definirPin($id, 'clave-segura', '4826', '4826', '10.0.0.5');
+      $this->fail('Debía bloquear');
+    } catch (CuentaBloqueadaException) {
+    }
+    // Y el login de ese usuario desde esa IP también queda bloqueado.
+    $this->assertValidationError(fn() => $this->usuarios->autenticar('tecnico', 'clave-segura', '10.0.0.5'), 'Demasiados intentos');
+  }
+
+  public function testNoPasanMasIntentosQueLosPermitidos(): void
+  {
+    $this->crear('tecnico');
+
+    // Con el intento anotado antes de verificar, el que se pasa del límite ya ve los anteriores.
+    $bloqueados = 0;
+    for ($i = 0; $i < UsuarioService::MAX_INTENTOS + 3; $i++) {
+      try {
+        $this->usuarios->autenticar('tecnico', 'mal', '10.0.0.6');
+      } catch (ValidationException $e) {
+        $bloqueados += str_contains($e->getMessage(), 'Demasiados intentos') ? 1 : 0;
+      }
+    }
+    $this->assertSame(3, $bloqueados);
+  }
+
+  public function testElPrimerAdministradorSoloSeCreaUnaVez(): void
+  {
+    $datos = ['nombre' => 'Dueño', 'usuario' => 'duenio', 'clave' => 'clave-segura', 'clave_confirmacion' => 'clave-segura'];
+    $id = $this->usuarios->crearPrimerAdministrador($datos);
+    $this->assertSame('administrador', $this->usuarios->obtener($id)['rol']);
+
+    $this->expectException(NotFoundException::class);
+    $this->usuarios->crearPrimerAdministrador(['usuario' => 'intruso'] + $datos);
   }
 }

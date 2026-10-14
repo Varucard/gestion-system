@@ -176,16 +176,18 @@ En producción este sistema corre en la VPS de [Mecánica Abel](https://github.c
 y **usa su MySQL** en vez de levantar uno propio: MySQL es lo que más memoria ocupa (~500 MB) y
 la VPS es chica. Tiene su propia base y su propio usuario dentro de ese servidor, y sus propios
 contenedores de aplicación (`gestion` y `gestion-tareas`, ~25 MB), con la misma imagen que Abel.
-No comparte el contenedor `public` de Abel como el sitio de PC Fighter: las dos aplicaciones leen
-las mismas variables (`DB_DATABASE`, `MAIL_DSN`, `APP_URL`…) y en un mismo Apache se pisarían.
+No comparte el contenedor `public` de Abel: las dos aplicaciones leen las mismas variables
+(`DB_DATABASE`, `MAIL_DSN`, `APP_URL`…) y en un mismo Apache se pisarían. La clave de root de
+MySQL no llega a nuestros contenedores: el override la pisa vacía.
 
 Todo se maneja desde la carpeta de Abel: **el `docker-compose.yml` de este repo no se usa ahí.**
 
 ```mermaid
 flowchart LR
-  AP[Apache del host] -->|taller.pcfighter.com.ar| PUB[public de Abel<br/>+ sitio de PC Fighter]
+  AP[Apache del host] -->|taller.pcfighter.com.ar| PUB[public de Abel]
+  AP -->|www.pcfighter.com.ar| PCF[pcfighter<br/>sitio de PC Fighter]
   AP -->|gestion.pcfighter.com.ar<br/>127.0.0.1:8060| GES[gestion]
-  PUB -->|Seguí tu servicio<br/>http://gestion| GES
+  PCF -->|red pcfighter<br/>Seguí tu servicio| GES
   PUB --> DB[(database de Abel<br/>taller_mecanico + servicio_tecnico)]
   GES --> DB
   GT[gestion-tareas] --> DB
@@ -200,7 +202,7 @@ flowchart LR
    | `DB_DATABASE`, `DB_USERNAME` | `servicio_tecnico`, `gestion` (distintos de los de Abel) |
    | `DB_PASSWORD` | Generada con `openssl rand -hex 24` |
    | `APP_URL` | `https://gestion.pcfighter.com.ar` |
-   | `TRUSTED_PROXIES` | `172.16.0.0/12` |
+   | `TRUSTED_PROXIES` | La IP del gateway de la red de Docker, `/32` (ver *Proxy de Apache* en `DESPLIEGUE.md` de Abel); no todo `172.16.0.0/12`, que incluye a los otros contenedores |
    | `SEGUIMIENTO_API_KEY` | Generada con `openssl rand -hex 32`; la misma va en `GESTION_API_KEY` del sitio |
 
    `MYSQL_ROOT_PASSWORD`, los puertos y los `*_BIND` no se usan: manda el `.env` de Abel.
@@ -215,14 +217,24 @@ flowchart LR
    SQL
    ```
 
-4. Sumar los servicios de `docker-compose.override.ejemplo.yml` al
-   `docker-compose.override.yml` de Abel (debajo de los que ya tenga), y levantarlos:
+4. Sumar los servicios de `docker-compose.override.ejemplo.yml` al final del
+   `docker-compose.override.yml` de Abel, y levantarlos:
    `docker compose up -d --build gestion gestion-tareas`. Al arrancar, `gestion` instala las
-   dependencias y aplica las migraciones en su base, igual que con su propio compose.
+   dependencias (sin las de desarrollo, con `ENTORNO=produccion`) y aplica las migraciones en su
+   base, igual que con su propio compose. `gestion` se suma a la red `pcfighter`, que declara el
+   override del sitio de PC Fighter; si el sitio no corre ahí, sacarla. Con los dos, el override
+   se arma así, desde `abel_mecanica/`:
+
+   ```bash
+   { cat ../pc-fighter/docker-compose.override.ejemplo.yml
+     sed -n '/^services:/,$p' ../gestion-system/docker-compose.override.ejemplo.yml | tail -n +2
+   } > docker-compose.override.yml
+   ```
 5. En el Apache del host, un vhost como el del taller para `gestion.pcfighter.com.ar` hacia
    `127.0.0.1:8060`, y `certbot --apache`.
-6. En el sitio de PC Fighter, `GESTION_URL=http://gestion` (por la red interna de Docker, sin
-   salir del servidor) y `GESTION_API_KEY` con la clave del paso 2.
+6. En el sitio de PC Fighter, `GESTION_URL=http://gestion` (por la red interna `pcfighter`, sin
+   salir del servidor) y `GESTION_API_KEY` con la clave del paso 2. La API solo la usa el sitio:
+   en el vhost del host, `/api/` va cerrado desde internet (`<Location /api/> Require all denied`).
 
 **Operación**, siempre desde `abel_mecanica/`:
 
@@ -234,7 +246,9 @@ docker compose logs gestion --tail 50
 ```
 
 El phpMyAdmin de Abel ve las dos bases; con el usuario `gestion` solo se ve la de este sistema.
-Los scripts de backup, en este modo, van con `ABEL_DIR` (ver [Backups](#backups)).
+Los scripts de backup, en este modo, van con `ABEL_DIR` (ver [Backups](#backups)). Root de
+MySQL queda solo para `localhost` (ver `DESPLIEGUE.md` de Abel): el phpMyAdmin se usa con el
+usuario de cada sistema.
 
 ## Arquitectura
 
@@ -373,6 +387,20 @@ services:
 y `BACKUP_COPIA_DIR=/backups_externos` en `.env`. Si la copia falla, queda en el registro
 del sistema y el backup local se conserva igual.
 
+**Cifrado:** con `BACKUP_CLAVE_PUBLICA` en `.env`, cada backup (el automático, el manual y el de
+`scripts/backup.sh`) se guarda cifrado como `.cif`, y el original se borra. El servidor solo tiene la
+clave **pública**: puede cifrar pero no descifrar. Una copia filtrada, o el disco del servidor, no se
+leen sin la clave **privada**, que se guarda fuera (un gestor de contraseñas). **Sin la clave privada
+los backups no se pueden recuperar.**
+
+```bash
+php bin/backup.php claves                                  # en una PC propia: genera el par
+php bin/backup.php descifrar db_<fecha>.sql.gz.cif db.sql.gz   # pide la clave privada, sin eco
+```
+
+`scripts/restore.sh` acepta los `.cif` directamente: pide la clave privada (o la toma de
+`BACKUP_CLAVE_PRIVADA`) y descifra en el contenedor, a una carpeta temporal que se borra al terminar.
+
 También se puede hacer desde la consola del servidor:
 
 ```bash
@@ -380,9 +408,13 @@ scripts/backup.sh                       # en backups/ (usa mysqldump del contene
 scripts/restore.sh storage/backups/db_<fecha>.sql.gz storage/backups/archivos_<fecha>.tar.gz
 ```
 
-Los dos usan siempre la base de `DB_DATABASE`. En la VPS compartida con Mecánica Abel se corren
-con `ABEL_DIR=../abel_mecanica` adelante, para que usen su MySQL; ese servidor tiene además la
-base del taller, que estos scripts no tocan.
+Los dos usan siempre la base de `DB_DATABASE` y entran con el usuario de la aplicación
+(`DB_USERNAME` / `DB_PASSWORD` del `.env`), no con root: la clave viaja por el entorno y no
+aparece en la lista de procesos. En la VPS compartida con Mecánica Abel se corren con
+`ABEL_DIR=../abel_mecanica` adelante, para que usen su MySQL; nuestro usuario no ve la base del
+taller. Los backups se guardan solo para el dueño (`umask 077`). El restore revisa el archivo de
+archivos **antes** de tocar la base: rechaza enlaces y restaura solo `storage/config` y
+`storage/uploads`, dentro del contenedor y con `www-data` como dueño.
 
 ## Logs y auditoría
 

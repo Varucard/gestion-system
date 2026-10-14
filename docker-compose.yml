@@ -20,8 +20,11 @@ services:
       - --default-time-zone=-03:00
     volumes:
       - db_data:/var/lib/mysql
+    # Sin contraseña: "mysqladmin ping" devuelve 0 si el servidor responde, aunque sea con
+    # "Access denied". Así la clave de root no queda en la configuración del contenedor
+    # (docker inspect) ni en la lista de procesos.
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uhealthcheck"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -50,6 +53,9 @@ services:
     env_file: .env
     environment:
       XDEBUG_MODE: ${XDEBUG_MODE:-off}
+      # La clave de root de MySQL solo la usa el contenedor database: la aplicación entra con su
+      # propio usuario. Se pisa vacía para que no llegue al PHP (ni a lo que un error pudiera leer).
+      MYSQL_ROOT_PASSWORD: ""
     volumes:
       - ./:/var/www/html
       - ./xdebug.ini:/usr/local/etc/php/conf.d/xdebug.ini:ro
@@ -69,6 +75,7 @@ services:
     environment:
       SKIP_SETUP: "1"
       XDEBUG_MODE: "off"
+      MYSQL_ROOT_PASSWORD: ""
     volumes:
       - ./:/var/www/html
     depends_on:

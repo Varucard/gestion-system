@@ -51,7 +51,8 @@ final class Session
   /** Guarda lo enviado en el formulario para volver a mostrarlo tras un error. */
   public function keepInput(array $input): void
   {
-    unset($input['_token']);
+    // Contraseñas, PIN y códigos no se guardan en la sesión (ni se vuelven a mostrar).
+    $input = array_filter($input, fn($clave) => !preg_match('/^(_token|token_.*|clave.*|pin|pin_.*|password.*)$/', (string) $clave), ARRAY_FILTER_USE_KEY);
     $_SESSION[self::OLD] = $input;
   }
 

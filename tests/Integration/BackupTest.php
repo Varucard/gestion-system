@@ -55,6 +55,29 @@ final class BackupTest extends IntegrationTestCase
     $this->assertCount(1, glob($this->configRoot . '/storage/backups/db_*.gz'));
   }
 
+  public function testConClavePublicaGuardaSoloElBackupCifrado(): void
+  {
+    $this->crearCliente();
+    $claves = \App\Support\CifradoBackup::generarClaves();
+    putenv("BACKUP_CLAVE_PUBLICA={$claves['publica']}");
+
+    try {
+      $backups = $this->servicio();
+      $creados = $backups->generar();
+    } finally {
+      putenv('BACKUP_CLAVE_PUBLICA');
+    }
+
+    $this->assertStringEndsWith('.sql.gz.cif', $creados[0]);
+    $this->assertMatchesRegularExpression(BackupService::PATRON, $creados[0]);
+    $this->assertSame([], glob($this->configRoot . '/storage/backups/*.gz'), 'No queda ningún backup en claro');
+    $this->assertSame($creados[0], $backups->listar()[0]['nombre'] ?? null);
+
+    $vuelta = $this->configRoot . '/storage/backups/vuelta.sql.gz';
+    \App\Support\CifradoBackup::descifrar($backups->ruta($creados[0]), $vuelta, $claves['privada']);
+    $this->assertStringContainsString("'PÉREZ'", (string) gzdecode((string) file_get_contents($vuelta)));
+  }
+
   public function testCorrespondeUnaVezPorDiaDesdeLaHora(): void
   {
     $this->configurar('backups', ['habilitado' => true, 'hora' => '22:00', 'conservar' => 5]);

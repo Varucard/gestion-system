@@ -54,7 +54,8 @@ abstract class HttpTestCase extends IntegrationTestCase
       'nombre' => 'Persona de prueba', 'usuario' => $usuario, 'rol' => $rol->value,
       'clave' => 'clave-de-prueba', 'clave_confirmacion' => 'clave-de-prueba',
     ]);
-    $_SESSION['_auth'] = ['id' => $id, 'nombre' => 'Persona de prueba', 'usuario' => $usuario, 'rol' => $rol->value, 'actividad' => time()];
+    $huella = $this->make(\App\Repositories\UsuarioRepository::class)->huella($id);
+    $_SESSION['_auth'] = ['id' => $id, 'nombre' => 'Persona de prueba', 'usuario' => $usuario, 'rol' => $rol->value, 'actividad' => time(), 'inicio' => time(), 'huella' => $huella];
 
     return $id;
   }

@@ -3,6 +3,11 @@ Options -Indexes
 <IfModule mod_rewrite.c>
   RewriteEngine On
 
+  # Con mod_php el encabezado Authorization no le llega a PHP salvo que sea Basic: la API de
+  # seguimiento acepta la clave también como "Authorization: Bearer …".
+  RewriteCond %{HTTP:Authorization} .
+  RewriteRule ^ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
   # Archivos y carpetas existentes (assets) se sirven directo.
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
@@ -15,4 +20,10 @@ Options -Indexes
   Header always set X-Content-Type-Options "nosniff"
   Header always set X-Frame-Options "SAMEORIGIN"
   Header always set Referrer-Policy "same-origin"
+  # Sin plugins, sin <base> ajeno y sin que otro sitio la meta en un marco. No restringe los
+  # scripts (hay algunos en línea en las vistas) ni los destinos de los formularios: los botones
+  # de WhatsApp son POST que redirigen a wa.me / web.whatsapp.com (y de ahí a la app).
+  Header always set Content-Security-Policy "object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
+  # La app no usa cámara (las fotos se sacan con el selector de archivos), micrófono ni ubicación.
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), hid=(), midi=(), display-capture=()"
 </IfModule>
