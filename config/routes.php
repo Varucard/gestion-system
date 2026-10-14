@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Controllers\ApiController;
 use App\Controllers\AuthController;
 use App\Controllers\AyudaController;
 use App\Controllers\BusquedaController;
@@ -33,6 +34,9 @@ use App\Controllers\EquipoController;
 use App\Core\Router;
 
 return function (Router $r): void {
+  // API para el sitio web ("Seguí tu servicio"): pública, protegida con SEGUIMIENTO_API_KEY
+  $r->post('/api/v1/seguimiento', [ApiController::class, 'seguimiento'], Router::ACCESO_PUBLICO);
+
   // Acceso
   $r->get('/login', [AuthController::class, 'loginForm'], Router::ACCESO_PUBLICO);
   $r->post('/login', [AuthController::class, 'login'], Router::ACCESO_PUBLICO);

@@ -50,6 +50,12 @@ Lo propio del taller que no aplica quedó afuera: patente, kilometraje, nivel de
 | 19 | **Modo oscuro de la marca por defecto**; el claro, con la misma paleta. Encabezado siempre azul noche, teñido con el color de la sección y con la línea del degradado. | ✅ |
 | 20 | **Botones de la marca** (degradado violeta → magenta → azul con resplandor), tarjetas y modales como los del sitio, login, portal del cliente y página sin conexión con la misma estética. | ✅ |
 
+## Conexión con el sitio web (2026-10-13)
+
+| # | Ítem | Estado |
+| --- | --- | --- |
+| 21 | **API de seguimiento** (`POST /api/v1/seguimiento`): estado de un trabajo por ticket + DNI, para «Seguí tu servicio» del sitio de PC Fighter. Clave compartida, sin datos de contacto y con el mismo bloqueo por intentos que el portal. | ✅ |
+
 ## Ideas para el rubro
 
 | Ítem | Qué falta |

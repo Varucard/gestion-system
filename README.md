@@ -136,6 +136,29 @@ para aceptar, equipo listo con el detalle del trabajo, turno para confirmar, man
 persona lo envía desde su teléfono. La API de WhatsApp Business se descartó: cobra por mensaje y
 no suma frente al botón con link.
 
+### API de seguimiento (para el sitio web)
+
+`POST /api/v1/seguimiento` devuelve en JSON el estado de **un trabajo**, con el número de ticket
+(el de la orden: `0013`, `#13` o `PCF-0013`) y el DNI del cliente. La usa la sección «Seguí tu
+servicio» del sitio de PC Fighter, que la llama **desde su servidor** (la clave no llega al
+navegador). Se activa con `SEGUIMIENTO_API_KEY` en `.env` (sin clave, la ruta no existe) y respeta
+*Configuración > Portal* (habilitado y si se muestran los montos).
+
+```bash
+curl -X POST https://sistema.ejemplo.com/api/v1/seguimiento \
+  -H "X-Api-Key: $SEGUIMIENTO_API_KEY" -H "X-Cliente-IP: 200.1.2.3" \
+  -H "Content-Type: application/json" -d '{"ticket": "PCF-0013", "dni": "22333444"}'
+```
+
+| Respuesta | Cuándo |
+| --- | --- |
+| `200` | `ticket`, `cliente` (nombre de pila), `equipo`, `ingreso`, `etapa` y `etapas` (recibido → en reparación → listo → entregado, o cancelado), `terminado`, `entregado`, `falla`, `trabajos`, `presupuesto` (`estado` y, si espera respuesta, el `link` para aceptarlo), `montos` (o `null`) y `portal` |
+| `422` | Datos incompletos (`campos` dice cuáles) o ticket y DNI que no coinciden (mismo mensaje si el ticket no existe o es de otro) |
+| `429` | Demasiadas consultas fallidas: el mismo bloqueo del portal (15 minutos tras 10), por la IP de `X-Cliente-IP` |
+| `401` / `404` | Clave inválida / API sin clave o portal deshabilitado |
+
+Nunca devuelve datos de contacto, notas internas ni técnicos asignados.
+
 ### Sin Docker
 
 Requiere PHP 8.2+ con `pdo_mysql`, `gd`, `mbstring` y `dom`, más un MySQL accesible.
@@ -199,6 +222,7 @@ Para cambiar la base de datos se agrega un archivo nuevo en `database/migrations
 | Órdenes | `/ordenes/{id}` (ficha con pagos), `/ordenes/{id}/entrega`, `/ordenes/{id}/entrega/pdf` |
 | Stock | `/repuestos/{id}/stock`, `/proveedores` |
 | Acceso | `/login`, `/perfil/clave` |
+| API (sitio web) | `POST /api/v1/seguimiento` (con `SEGUIMIENTO_API_KEY`) |
 | Públicas (clientes) | `/seguimiento`, `/turno/{token}` (confirmar o cancelar), `/presupuesto/{token}` (aceptar o rechazar) |
 | Búsqueda y agenda | `/buscar?q=`, `/turnos/semana` |
 | Solo administradores | `/configuracion/{seccion}`, `/usuarios`, `/empleados`, `/precios`, `/reportes`, `/auditoria`, `/logs` |
