@@ -96,8 +96,9 @@ IP real del cliente.
 Al iniciar, el contenedor `public` instala las dependencias (si faltan) y aplica
 las migraciones pendientes. **La primera vez que entrás, la aplicación pide crear
 el usuario administrador.** Después, en *Configuración > Negocio*, cargar el nombre, CUIT,
-dirección y contacto del negocio (salen en los presupuestos, los emails y el portal), y reemplazar
-el logo genérico de `public/assets/img/` (`logo.png`, `logo_64.png` e `icono-*.png`) por el propio.
+dirección y contacto del negocio (salen en los presupuestos, los emails y el portal). El logo de
+PC Fighter ya está en `public/assets/img/` (`logo.png`, `logo_64.png` e `icono-*.png`), sacado del
+cuadrado de `pc-fighter/PC FIGHTER/Logos/`.
 
 Si se olvida la contraseña del administrador:
 
