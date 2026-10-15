@@ -10,7 +10,7 @@
 <html lang="es">
 
 <head>
-  <?= $view->partial('partials/head', ['titulo' => ($title ?? '') . ' - ' . $negocio['nombre'], 'manifiesto' => 'portal.webmanifest', 'privado' => true]) ?>
+  <?= $view->partial('partials/head', ['titulo' => ($title ?? '') . ' - ' . $negocio['nombre'], 'manifiesto' => 'portal.webmanifest']) ?>
 </head>
 
 <body>

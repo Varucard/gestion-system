@@ -4,12 +4,12 @@
  *
  * @var string $titulo título completo de la pestaña
  * @var string $manifiesto ruta del manifiesto de la app instalable (app o portal)
- * @var bool $privado true en páginas que no deben indexarse
  */
 ?>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<?php if (!empty($privado)): ?><meta name="robots" content="noindex"><?php endif; ?>
+<?php // Es un sistema interno: ninguna página va a los buscadores (también lo dice el .htaccess). ?>
+<meta name="robots" content="noindex, nofollow">
 <title><?= e($titulo) ?></title>
 <script>
   // El tema se aplica antes de pintar, para que el modo oscuro no parpadee.

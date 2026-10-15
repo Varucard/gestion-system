@@ -25,5 +25,8 @@ Options -Indexes
   # de WhatsApp son POST que redirigen a wa.me / web.whatsapp.com (y de ahí a la app).
   Header always set Content-Security-Policy "object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
   # La app no usa cámara (las fotos se sacan con el selector de archivos), micrófono ni ubicación.
+  # Sistema interno: fuera de los buscadores todo lo que sirve, también PDFs, JSON e imágenes.
+  # Va como encabezado y no como Disallow en un robots.txt, que impediría que el buscador lo lea.
+  Header always set X-Robots-Tag "noindex, nofollow, noarchive"
   Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), hid=(), midi=(), display-capture=()"
 </IfModule>
